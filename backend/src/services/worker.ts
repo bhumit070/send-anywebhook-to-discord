@@ -88,11 +88,20 @@ export class QueueWorker {
     return claimed.length;
   }
 
-  /** Rows left in `processing` by a crashed process go back to the queue. */
+  /**
+   * Rows left in `processing` by a crashed process go back to the queue. This counts as an
+   * attempt, so a payload that keeps crashing the worker ends up `dead`.
+   */
   async recoverStuck(): Promise<number> {
     const rows = await this.db
       .update(webhookQueue)
-      .set({ status: 'failed', lockedAt: null, lockedBy: null, lastError: 'Worker stopped mid-delivery; retrying' })
+      .set({
+        attempts: sql`${webhookQueue.attempts} + 1`,
+        status: sql`(case when ${webhookQueue.attempts} + 1 >= ${webhookQueue.maxAttempts} then 'dead' else 'failed' end)::queue_status`,
+        lockedAt: null,
+        lockedBy: null,
+        lastError: 'Worker stopped mid-delivery (crash or restart)',
+      })
       .where(and(sql`${webhookQueue.status} = 'processing'`, lt(webhookQueue.lockedAt, new Date(Date.now() - STUCK_AFTER_MS))))
       .returning({ id: webhookQueue.id });
     if (rows.length) this.log.warn({ count: rows.length }, 'recovered stuck queue rows');

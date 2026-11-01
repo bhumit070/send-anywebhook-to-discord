@@ -90,18 +90,26 @@ export class Delivery {
     return rows.length > 0;
   }
 
-  private async finish(id: string, patch: Partial<typeof webhookQueue.$inferInsert>): Promise<DeliveryOutcome> {
+  /**
+   * Writes the result of a delivery, but only while this worker still holds the row's lock.
+   * If the row was recovered and claimed again meanwhile, the newer owner's result is kept.
+   */
+  private async finish(id: string, patch: Record<string, unknown>): Promise<DeliveryOutcome> {
+    const outcome = {
+      id: webhookQueue.id,
+      status: webhookQueue.status,
+      lastError: webhookQueue.lastError,
+      lastStatusCode: webhookQueue.lastStatusCode,
+    };
     const [row] = await this.db
       .update(webhookQueue)
       .set({ ...patch, lockedAt: null, lockedBy: null })
-      .where(eq(webhookQueue.id, id))
-      .returning({
-        id: webhookQueue.id,
-        status: webhookQueue.status,
-        lastError: webhookQueue.lastError,
-        lastStatusCode: webhookQueue.lastStatusCode,
-      });
-    return row!;
+      .where(and(eq(webhookQueue.id, id), eq(webhookQueue.status, 'processing'), eq(webhookQueue.lockedBy, this.workerId)))
+      .returning(outcome);
+    if (row) return row;
+    this.log.warn({ queueId: id }, 'lost the lock on a queue row before finishing; keeping the newer result');
+    const [current] = await this.db.select(outcome).from(webhookQueue).where(eq(webhookQueue.id, id));
+    return current ?? { id, status: 'dead', lastError: 'Queue item was deleted', lastStatusCode: null };
   }
 
   private async nextAttemptNo(queueId: string): Promise<number> {
@@ -267,12 +275,16 @@ export class Delivery {
     }
   }
 
-  /** Last-resort handler so a bug never leaves a row stuck in `processing`. */
+  /**
+   * Last-resort handler so a bug never leaves a row stuck in `processing`. It counts as an
+   * attempt, so a webhook that keeps crashing delivery ends up `dead` instead of looping forever.
+   */
   async failUnexpected(id: string, err: unknown): Promise<DeliveryOutcome> {
     this.log.error({ err, queueId: id }, 'delivery crashed');
     const { message } = describeError(err);
     return this.finish(id, {
-      status: 'failed',
+      attempts: sql`${webhookQueue.attempts} + 1`,
+      status: sql`(case when ${webhookQueue.attempts} + 1 >= ${webhookQueue.maxAttempts} then 'dead' else 'failed' end)::queue_status`,
       lastError: `Internal error: ${message}`,
       nextAttemptAt: new Date(Date.now() + BACKOFF_MS[0]!),
     });
