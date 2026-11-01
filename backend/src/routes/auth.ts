@@ -3,7 +3,7 @@ import { eq, sql } from 'drizzle-orm';
 import { Type } from 'typebox';
 import { users } from '../db/schema.js';
 import { hashPassword, verifyPassword } from '../lib/crypto.js';
-import { SESSION_COOKIE } from '../plugins/auth.js';
+import { LOCAL_USER_EMAIL, SESSION_COOKIE } from '../plugins/auth.js';
 import { ErrorResponse, OkResponse } from '../schemas.js';
 import type { RouteDeps } from './types.js';
 
@@ -38,6 +38,10 @@ export const authRoutes: FastifyPluginAsyncTypebox<RouteDeps> = async (app, { co
         return reply.code(403).send({ statusCode: 403, error: 'Forbidden', message: 'Registration is closed on this instance' });
       }
       const email = req.body.email.trim().toLowerCase();
+      // Reserved for the built-in AUTH_DISABLED user; registering it would claim that user's data
+      if (email === LOCAL_USER_EMAIL) {
+        return reply.code(409).send({ statusCode: 409, error: 'Conflict', message: 'This email address is reserved' });
+      }
       const [user] = await db
         .insert(users)
         .values({ email, passwordHash: await hashPassword(req.body.password) })

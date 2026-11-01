@@ -43,14 +43,20 @@ export function filterWhere(db: Db, userId: string, f: QueueFilterT): SQL {
     conds.push(or(sql`${webhookQueue.payload}::text ilike ${like}`, ilike(webhookQueue.lastError, like)));
   }
   if (f.path?.trim()) {
-    let segments = parsePath(f.path.trim());
+    const segments = parsePath(f.path.trim());
     if (!segments) throw Object.assign(new Error(`Can't read path "${f.path}"`), { statusCode: 400 });
-    if (segments.length > 1 && segments[0] === 'payload') segments = segments.slice(1);
-    const arr = pgTextArray(segments.map(String));
+    // `payload.x` means key "x" of the body, unless the body itself has a top-level "payload" key
+    const candidates = [segments];
+    if (segments.length > 1 && segments[0] === 'payload') candidates.push(segments.slice(1));
     conds.push(
-      f.pathValue !== undefined
-        ? sql`${webhookQueue.payload} #>> ${arr}::text[] = ${f.pathValue}`
-        : sql`${webhookQueue.payload} #> ${arr}::text[] is not null`,
+      or(
+        ...candidates.map((segs) => {
+          const arr = pgTextArray(segs.map(String));
+          return f.pathValue !== undefined
+            ? sql`${webhookQueue.payload} #>> ${arr}::text[] = ${f.pathValue}`
+            : sql`${webhookQueue.payload} #> ${arr}::text[] is not null`;
+        }),
+      ),
     );
   }
   return and(...conds)!;

@@ -25,7 +25,9 @@ export const templateRoutes: FastifyPluginAsyncTypebox<RouteDeps> = async (app, 
     (await db.select({ id: relays.id }).from(relays).where(and(eq(relays.id, relayId), eq(relays.userId, userId)))).length > 0;
 
   /** Validates a body and produces the columns to store, or an error message. */
-  const prepare = (body: Partial<Static<typeof TemplateBody>>) => {
+  const prepare = (input: Partial<Static<typeof TemplateBody>>) => {
+    // A PATCH with only `message` or only `mapping` implies the matching mode
+    const body = { ...input, mode: input.mode ?? (input.message ? 'liquid' : input.mapping ? 'mapping' : undefined) } as typeof input;
     let message: MessageTemplateT | undefined;
     let mapping: MappingT | null | undefined;
     if (body.mode === 'mapping') {

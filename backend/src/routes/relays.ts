@@ -348,10 +348,15 @@ export const relayRoutes: FastifyPluginAsyncTypebox<RouteDeps> = async (app, { c
         tpl = first?.message as MessageTemplateT | undefined;
       }
       const payload = req.body.payload ?? relay.samplePayload;
-      const render =
-        tpl && payload !== null && payload !== undefined
-          ? renderMessage(delivery.engine, tpl, { payload, relay: { name: relay.name } })
-          : { message: { content: `✅ Test message from Send Any Webhook to Discord relay **${relay.name}**` }, warnings: [], error: null };
+      let render: ReturnType<typeof renderMessage>;
+      try {
+        render =
+          tpl && payload !== null && payload !== undefined
+            ? renderMessage(delivery.engine, tpl, { payload, relay: { name: relay.name } })
+            : { message: { content: `✅ Test message from Send Any Webhook to Discord relay **${relay.name}**` }, warnings: [], error: null };
+      } catch (err) {
+        render = { message: null, warnings: [], error: (err as Error).message };
+      }
       if (!render.message) return { ok: false, status: null, error: render.error, render };
       try {
         const res = await send(decryptUrl(relay.discordWebhookUrlEnc), render.message);
