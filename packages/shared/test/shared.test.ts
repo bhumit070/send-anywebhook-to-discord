@@ -152,6 +152,48 @@ describe('compile + render', () => {
   });
 });
 
+describe('sandbox and limits (review fixes)', () => {
+  it('cannot read files with render, include or layout', () => {
+    for (const tag of ["{% render 'package.json' %}", "{% include 'package.json' %}", "{% layout 'package.json' %}x"]) {
+      const r = renderMessage(engine, { content: tag }, { payload: {} });
+      expect(r.message?.content ?? '').not.toContain('vitest');
+      expect(r.error).not.toBeNull();
+    }
+    expect(() => matchesCondition(engine, "true %}{% render 'package.json' %}{% if true", { payload: {} })).toThrow();
+  });
+
+  it('renders only as many list items as Discord allows', () => {
+    const items = Array.from({ length: 200_000 }, (_, i) => i);
+    const started = Date.now();
+    const r = renderMessage(
+      engine,
+      { embeds: [{ title: 't', fields_each: { path: 'items', name: '{{ item }}', value: 'v' } }] },
+      { payload: { items } },
+    );
+    expect(Date.now() - started).toBeLessThan(1000);
+    expect(r.message?.embeds?.[0]?.fields).toHaveLength(25);
+    expect(r.warnings.some((w) => w.message.includes('199975 list item(s) left out'))).toBe(true);
+  });
+
+  it('keeps all embeds together under 6000 characters', () => {
+    const embed = { title: 't'.repeat(256), footer: { text: 'f'.repeat(2048) }, author: { name: 'a'.repeat(256) } };
+    const r = renderMessage(engine, { embeds: Array.from({ length: 10 }, () => embed) }, { payload: {} });
+    const total = (r.message?.embeds ?? []).reduce(
+      (n, e) => n + (e.title?.length ?? 0) + (e.footer?.text.length ?? 0) + (e.author?.name.length ?? 0) + (e.description?.length ?? 0),
+      0,
+    );
+    expect(total).toBeLessThanOrEqual(6000);
+    expect(r.message?.embeds?.length).toBeGreaterThan(0);
+  });
+
+  it('resolves a top-level key named "payload" like the field tree shows it', () => {
+    const body = { payload: { action: 'opened' } };
+    const paths = flattenPaths(extractPaths(body)).map((n) => n.path);
+    expect(paths).toContain('payload.action');
+    expect(renderMessage(engine, { content: '{{ payload.action }}' }, { payload: body }).message?.content).toBe('opened');
+  });
+});
+
 describe('conditions', () => {
   it('matches Liquid conditions against the payload', () => {
     expect(matchesCondition(engine, 'event_name == "task.created"', { payload: vikunja })).toBe(true);

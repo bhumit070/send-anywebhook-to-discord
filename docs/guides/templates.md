@@ -112,4 +112,4 @@ The message is Discord's [webhook body](https://discord.com/developers/docs/reso
 
 ### Safety limits
 
-Templates run on the server, so each render is limited in time and memory. A template that loops forever fails with a render error instead of hanging the worker. Messages are always sent with `allowed_mentions: { "parse": [] }`, so text from a payload can never ping `@everyone`, `@here`, roles or users.
+Templates run on the server, so they are sandboxed: they can only read the payload (not files, so `render`, `include` and `layout` don't work), and each render is limited in time and memory. A template that loops forever fails with a render error instead of hanging the worker. Messages are always sent with `allowed_mentions: { "parse": [] }`, so text from a payload can never ping `@everyone`, `@here`, roles or users.

@@ -38,6 +38,9 @@ export function toText(value: unknown): string {
 
 export function createEngine(): Liquid {
   const engine = new Liquid({
+    // An empty in-memory file system: {% render %}, {% include %} and {% layout %}
+    // must never read files from the server.
+    templates: {},
     ownPropertyOnly: true,
     strictFilters: true,
     // Templates are user-written and run on the server: cap the work one render may do.
@@ -81,8 +84,8 @@ function parse(engine: Liquid, source: string): Template[] {
 
 export function buildScope(ctx: RenderContext): Record<string, unknown> {
   const base = isPlainObject(ctx.payload) ? { ...ctx.payload } : {};
-  // Payload keys win over `relay` so paths taken from the sample always resolve.
-  return { relay: ctx.relay ?? { name: 'Relay' }, ...base, payload: ctx.payload };
+  // Payload keys win over `relay` and `payload` so paths taken from the sample always resolve.
+  return { relay: ctx.relay ?? { name: 'Relay' }, payload: ctx.payload, ...base };
 }
 
 class FatalRender extends Error {}
@@ -226,7 +229,9 @@ function renderEmbed(
     if (!Array.isArray(items)) {
       w.push({ slot: `${p}.fields_each`, message: `"${each.path}" is not a list in this payload` });
     } else {
-      items.forEach((item, i) => {
+      // Render only what can be sent: a huge list must not block the process
+      const room = Math.max(0, L.embedFields - fields.length);
+      items.slice(0, room).forEach((item, i) => {
         const itemScope = { ...scope, item };
         const slot = `${p}.fields_each[${i}]`;
         addField(
@@ -236,6 +241,9 @@ function renderEmbed(
           slot,
         );
       });
+      if (items.length > room) {
+        w.push({ slot: `${p}.fields_each`, message: `Discord allows ${L.embedFields} fields; ${items.length - room} list item(s) left out` });
+      }
     }
   }
   if (fields.length > L.embedFields) {
@@ -255,19 +263,28 @@ function enforceTotal(embeds: DiscordEmbed[], w: RenderWarning[]) {
   let total = embeds.reduce((n, e) => n + embedChars(e), 0);
   if (total <= L.embedsTotalChars) return;
   w.push({ slot: 'embeds', message: `Embeds total ${total} characters; Discord allows ${L.embedsTotalChars}. Trimmed from the end.` });
-  for (let i = embeds.length - 1; i >= 0 && total > L.embedsTotalChars; i--) {
+  const over = () => total - L.embedsTotalChars;
+  /** Shortens text by what is still over the limit (at least to `min` characters); returns the new text. */
+  const shorten = (text: string, min: number) => {
+    const keep = Math.max(min, text.length - over() - 1);
+    if (keep >= text.length) return text;
+    total -= text.length - (keep + 1);
+    return `${text.slice(0, keep)}…`;
+  };
+  for (let i = embeds.length - 1; i >= 0 && over() > 0; i--) {
     const e = embeds[i]!;
-    while (e.fields?.length && total > L.embedsTotalChars) {
+    while (e.fields?.length && over() > 0) {
       const f = e.fields.pop()!;
       total -= f.name.length + f.value.length;
     }
     if (!e.fields?.length) delete e.fields;
-    if (e.description && total > L.embedsTotalChars) {
-      const keep = Math.max(0, e.description.length - (total - L.embedsTotalChars) - 1);
-      total -= e.description.length - keep - 1;
-      e.description = `${e.description.slice(0, keep)}…`;
-    }
+    if (e.description && over() > 0) e.description = shorten(e.description, 0);
+    if (e.footer && over() > 0) e.footer.text = shorten(e.footer.text, 1);
+    if (e.title && over() > 0) e.title = shorten(e.title, 1);
+    if (e.author && over() > 0) e.author.name = shorten(e.author.name, 1);
   }
+  // Still over (many embeds of short parts): drop whole embeds from the end
+  while (over() > 0 && embeds.length > 1) total -= embedChars(embeds.pop()!);
 }
 
 /** Renders a message template against a payload and applies every Discord limit. */
