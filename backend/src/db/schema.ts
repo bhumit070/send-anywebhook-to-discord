@@ -46,6 +46,8 @@ export const discordWebhooks = pgTable(
   (t) => [index('discord_webhooks_user_id_idx').on(t.userId)],
 );
 
+export const ingestAuthType = pgEnum('ingest_auth_type', ['none', 'token', 'basic', 'hmac']);
+
 export const sampleSource = pgEnum('sample_source', ['example', 'schema', 'captured']);
 
 export const relays = pgTable(
@@ -62,6 +64,11 @@ export const relays = pgTable(
     discordWebhookId: uuid()
       .notNull()
       .references(() => discordWebhooks.id, { onDelete: 'restrict' }),
+    // How senders must prove they're allowed to post to the ingest URL; secrets are AES-256-GCM encrypted JSON
+    authType: ingestAuthType().notNull().default('none'),
+    authConfigEnc: text(),
+    /** Delivery attempts per webhook before it is marked dead (5xx/network errors). */
+    maxAttempts: integer().notNull().default(5),
     samplePayload: jsonb(),
     sampleSource: sampleSource(),
     captureMode: boolean().notNull().default(false),

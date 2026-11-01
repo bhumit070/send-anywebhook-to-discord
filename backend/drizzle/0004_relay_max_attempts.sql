@@ -1,0 +1,1 @@
+ALTER TABLE "relays" ADD COLUMN "max_attempts" integer DEFAULT 5 NOT NULL;

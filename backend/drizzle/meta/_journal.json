@@ -22,6 +22,20 @@
       "when": 1793511813173,
       "tag": "0002_relays_use_saved_webhooks",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793513710721,
+      "tag": "0003_relay_ingest_auth",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793513841026,
+      "tag": "0004_relay_max_attempts",
+      "breakpoints": true
     }
   ]
 }
