@@ -180,7 +180,7 @@ describe.skipIf(!TEST_DB)('integration (Postgres)', () => {
       expect(r).toMatchObject({ status: 'failed', attempts: 1, lastStatusCode: 502 });
       expect(r.nextAttemptAt.getTime() - Date.now()).toBeGreaterThan(8000);
 
-      await ctx.db.update(webhookQueue).set({ nextAttemptAt: new Date() }).where(eq(webhookQueue.id, id));
+      await ctx.db.update(webhookQueue).set({ nextAttemptAt: sql`now()` }).where(eq(webhookQueue.id, id));
       ctx.discord.queue.push(() => {
         throw new TypeError('fetch failed', { cause: { code: 'ECONNRESET' } });
       });
@@ -306,6 +306,62 @@ describe.skipIf(!TEST_DB)('integration (Postgres)', () => {
 
       const retryByFilter = (await api('POST', '/api/queue/retry', { filter: { relayId: [relay.id], status: ['delivered'] } })).json();
       expect(retryByFilter).toEqual({ affected: 0 }); // delivered rows are not retryable
+    });
+  });
+
+  describe('review fixes', () => {
+    it('ignores client-forged X-Forwarded-For entries', async () => {
+      const relay = await relayWithTemplate('XFF');
+      // nginx appends the real client (1.2.3.4) to whatever the client sent
+      const res = await ctx.app.inject({
+        method: 'POST',
+        url: `/h/${relay.ingestKey}`,
+        payload: '{}',
+        headers: { 'content-type': 'application/json', 'x-forwarded-for': '6.6.6.6, 1.2.3.4' },
+      });
+      expect((await row(res.json().id)).sourceIp).toBe('1.2.3.4');
+    });
+
+    it('reserves the built-in local user email', async () => {
+      const res = await ctx.app.inject({
+        method: 'POST',
+        url: '/api/auth/register',
+        payload: { email: 'LOCAL@send-any-webhook.local', password: 'password123' },
+      });
+      expect(res.statusCode).toBe(409);
+    });
+
+    it('applies a PATCH that sends only a message', async () => {
+      const relay = await relayWithTemplate('Patch');
+      const [t] = (await api('GET', `/api/relays/${relay.id}/templates`)).json();
+      const res = await api('PATCH', `/api/relays/${relay.id}/templates/${t.id}`, { message: { content: 'changed' } });
+      expect(res.json()).toMatchObject({ mode: 'liquid', message: { content: 'changed' } });
+    });
+
+    it('does not overwrite a row another worker has taken over', async () => {
+      const relay = await relayWithTemplate('Lock');
+      const id = (await ingest(relay.ingestKey, '{"title":"x"}')).json().id;
+      expect(await ctx.app.delivery.claimOne(id, ['pending'])).toBe(true);
+      // the row was recovered and claimed by someone else while we were slow
+      await ctx.db.update(webhookQueue).set({ lockedBy: 'other-worker' }).where(eq(webhookQueue.id, id));
+      await ctx.app.delivery.process(id, 'worker');
+      expect(await row(id)).toMatchObject({ status: 'processing', lockedBy: 'other-worker', attempts: 0 });
+    });
+
+    it('counts crashes and stuck recoveries as attempts', async () => {
+      const relay = await relayWithTemplate('Crash');
+      const id = (await ingest(relay.ingestKey, '{"title":"x"}')).json().id;
+      await ctx.db
+        .update(webhookQueue)
+        .set({ status: 'processing', attempts: 4, lockedAt: new Date(Date.now() - 10 * 60_000), lockedBy: 'gone' })
+        .where(eq(webhookQueue.id, id));
+      await ctx.worker.recoverStuck();
+      expect(await row(id)).toMatchObject({ status: 'dead', attempts: 5 });
+
+      const id2 = (await ingest(relay.ingestKey, '{"title":"y"}')).json().id;
+      await ctx.app.delivery.claimOne(id2, ['pending']);
+      await ctx.app.delivery.failUnexpected(id2, new Error('boom'));
+      expect(await row(id2)).toMatchObject({ status: 'failed', attempts: 1, lastError: 'Internal error: boom' });
     });
   });
 
