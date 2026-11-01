@@ -5,6 +5,7 @@ export * from './template.js';
 export * from './mapping.js';
 export * from './render.js';
 export * from './schema-sample.js';
+export * from './ingest-auth.js';
 
 export interface AppConfigResponse {
   authDisabled: boolean;
