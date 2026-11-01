@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     tags: ['v*']
   pull_request:
 
@@ -33,7 +33,7 @@ jobs:
       - run: npm run build
 
   images:
-    # Publishes ghcr.io/<owner>/send-any-webhook-backend and send-any-webhook-frontend on main and version tags
+    # Publishes ghcr.io/<owner>/send-any-webhook-backend and send-any-webhook-frontend on master and version tags
     needs: test
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
