@@ -31,6 +31,21 @@ export const users = pgTable(
   (t) => [uniqueIndex('users_email_lower_idx').on(sql`lower(${t.email})`)],
 );
 
+/** A user's saved Discord webhook URLs, reusable across relays. */
+export const discordWebhooks = pgTable(
+  'discord_webhooks',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    userId: uuid()
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text().notNull(),
+    urlEnc: text().notNull(), // AES-256-GCM, keyed from APP_SECRET
+    ...timestamps,
+  },
+  (t) => [index('discord_webhooks_user_id_idx').on(t.userId)],
+);
+
 export const sampleSource = pgEnum('sample_source', ['example', 'schema', 'captured']);
 
 export const relays = pgTable(
@@ -43,14 +58,21 @@ export const relays = pgTable(
     name: text().notNull(),
     slug: text().notNull(),
     ingestKey: text().notNull(), // `${slug}_${random}`; the part after /h/
-    discordWebhookUrlEnc: text().notNull(), // AES-256-GCM, keyed from APP_SECRET
+    // A saved webhook can't be deleted while relays use it
+    discordWebhookId: uuid()
+      .notNull()
+      .references(() => discordWebhooks.id, { onDelete: 'restrict' }),
     samplePayload: jsonb(),
     sampleSource: sampleSource(),
     captureMode: boolean().notNull().default(false),
     enabled: boolean().notNull().default(true),
     ...timestamps,
   },
-  (t) => [uniqueIndex('relays_ingest_key_idx').on(t.ingestKey), index('relays_user_id_idx').on(t.userId)],
+  (t) => [
+    uniqueIndex('relays_ingest_key_idx').on(t.ingestKey),
+    index('relays_user_id_idx').on(t.userId),
+    index('relays_discord_webhook_id_idx').on(t.discordWebhookId),
+  ],
 );
 
 export const templateMode = pgEnum('template_mode', ['mapping', 'liquid']);

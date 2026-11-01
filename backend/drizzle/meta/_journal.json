@@ -8,6 +8,20 @@
       "when": 1793506137508,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793511801939,
+      "tag": "0001_saved_discord_webhooks",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793511813173,
+      "tag": "0002_relays_use_saved_webhooks",
+      "breakpoints": true
     }
   ]
 }
