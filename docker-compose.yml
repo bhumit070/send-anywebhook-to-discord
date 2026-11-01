@@ -1,0 +1,51 @@
+name: send-any-webhook
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: send-any-webhook
+      POSTGRES_DB: send-any-webhook
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U send-any-webhook -d send-any-webhook"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: send-any-webhook-backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://send-any-webhook:${POSTGRES_PASSWORD}@postgres:5432/send-any-webhook
+      APP_SECRET: ${APP_SECRET:?set APP_SECRET in .env (openssl rand -hex 32)}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
+      AUTH_DISABLED: ${AUTH_DISABLED:-false}
+      ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-true}
+      EVENT_RETENTION_DAYS: ${EVENT_RETENTION_DAYS:-14}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      RUN_WORKER: ${RUN_WORKER:-true}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    image: send-any-webhook-frontend
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8080}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  pgdata:

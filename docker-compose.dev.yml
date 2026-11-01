@@ -1,0 +1,6 @@
+# Local development: exposes Postgres so `npm run dev` can reach it.
+#   npm run db:up
+services:
+  postgres:
+    ports:
+      - "5432:5432"
