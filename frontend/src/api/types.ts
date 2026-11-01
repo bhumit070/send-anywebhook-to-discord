@@ -1,4 +1,4 @@
-import type { DiscordMessage, Mapping, MessageTemplate, RenderWarning } from '@send-any-webhook/shared';
+import type { DiscordMessage, IngestAuth, Mapping, MessageTemplate, RenderWarning } from '@send-any-webhook/shared';
 import type { paths } from './schema';
 
 type Json<P extends keyof paths, M extends keyof paths[P], S extends number = 200> = paths[P][M] extends {
@@ -8,7 +8,8 @@ type Json<P extends keyof paths, M extends keyof paths[P], S extends number = 20
   : never;
 
 export type Relay = Json<'/api/relays', 'get'>[number];
-export type RelayDetail = Json<'/api/relays/{id}', 'get'>;
+type RelayDetailRaw = Json<'/api/relays/{id}', 'get'>;
+export type RelayDetail = Omit<RelayDetailRaw, 'auth'> & { auth: IngestAuth };
 export type QueueList = Json<'/api/queue', 'get'>;
 export type QueueItem = QueueList['items'][number];
 export type QueueStats = Json<'/api/queue/stats', 'get'>;

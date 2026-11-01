@@ -146,6 +146,19 @@ export interface paths {
                     };
                 };
                 /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            statusCode: number;
+                            error: string;
+                            message: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -226,6 +239,19 @@ export interface paths {
                 };
                 /** @description Default Response */
                 400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            statusCode: number;
+                            error: string;
+                            message: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -583,6 +609,10 @@ export interface paths {
                                 url: string;
                             };
                             enabled: boolean;
+                            /** @description Delivery attempts before a webhook is marked dead */
+                            maxAttempts: number;
+                            /** @enum {unknown} */
+                            authType: "none" | "token" | "basic" | "hmac";
                             captureMode: boolean;
                             sampleSource: (never | null) | "example" | "schema" | "captured";
                             hasSample: boolean;
@@ -627,6 +657,27 @@ export interface paths {
                         /** @description Name for a newly saved URL (default: the relay name) */
                         discordWebhookName?: string;
                         enabled?: boolean;
+                        /** @description Delivery attempts before giving up (default 5) */
+                        maxAttempts?: number;
+                        /** @description How senders must authenticate to the ingest URL */
+                        auth?: {
+                            /** @enum {unknown} */
+                            type: "none" | "token" | "basic" | "hmac";
+                            /** @description token/hmac: header to read (default Authorization / X-Signature) */
+                            headerName?: string;
+                            /** @description token/hmac: omit to keep the current one, or to generate one */
+                            secret?: string;
+                            /** @description basic (default "webhook") */
+                            username?: string;
+                            /** @description basic: omit to keep the current one, or to generate one */
+                            password?: string;
+                            /** @enum {unknown} */
+                            algorithm?: "sha256" | "sha1" | "sha512";
+                            /** @enum {unknown} */
+                            encoding?: "hex" | "base64";
+                            /** @description hmac: text before the digest, e.g. "sha256=" for GitHub */
+                            prefix?: string;
+                        };
                     };
                 };
             };
@@ -651,6 +702,10 @@ export interface paths {
                                 url: string;
                             };
                             enabled: boolean;
+                            /** @description Delivery attempts before a webhook is marked dead */
+                            maxAttempts: number;
+                            /** @enum {unknown} */
+                            authType: "none" | "token" | "basic" | "hmac";
                             captureMode: boolean;
                             sampleSource: (never | null) | "example" | "schema" | "captured";
                             hasSample: boolean;
@@ -666,6 +721,8 @@ export interface paths {
                             updatedAt: string;
                         } & {
                             samplePayload: unknown;
+                            /** @description Ingest credentials, including secrets (object) */
+                            auth: unknown;
                         };
                     };
                 };
@@ -729,6 +786,10 @@ export interface paths {
                                 url: string;
                             };
                             enabled: boolean;
+                            /** @description Delivery attempts before a webhook is marked dead */
+                            maxAttempts: number;
+                            /** @enum {unknown} */
+                            authType: "none" | "token" | "basic" | "hmac";
                             captureMode: boolean;
                             sampleSource: (never | null) | "example" | "schema" | "captured";
                             hasSample: boolean;
@@ -744,6 +805,8 @@ export interface paths {
                             updatedAt: string;
                         } & {
                             samplePayload: unknown;
+                            /** @description Ingest credentials, including secrets (object) */
+                            auth: unknown;
                         };
                     };
                 };
@@ -829,6 +892,27 @@ export interface paths {
                         /** @description Name for a newly saved URL (default: the relay name) */
                         discordWebhookName?: string;
                         enabled?: boolean;
+                        /** @description Delivery attempts before giving up (default 5) */
+                        maxAttempts?: number;
+                        /** @description How senders must authenticate to the ingest URL */
+                        auth?: {
+                            /** @enum {unknown} */
+                            type: "none" | "token" | "basic" | "hmac";
+                            /** @description token/hmac: header to read (default Authorization / X-Signature) */
+                            headerName?: string;
+                            /** @description token/hmac: omit to keep the current one, or to generate one */
+                            secret?: string;
+                            /** @description basic (default "webhook") */
+                            username?: string;
+                            /** @description basic: omit to keep the current one, or to generate one */
+                            password?: string;
+                            /** @enum {unknown} */
+                            algorithm?: "sha256" | "sha1" | "sha512";
+                            /** @enum {unknown} */
+                            encoding?: "hex" | "base64";
+                            /** @description hmac: text before the digest, e.g. "sha256=" for GitHub */
+                            prefix?: string;
+                        };
                     };
                 };
             };
@@ -853,6 +937,10 @@ export interface paths {
                                 url: string;
                             };
                             enabled: boolean;
+                            /** @description Delivery attempts before a webhook is marked dead */
+                            maxAttempts: number;
+                            /** @enum {unknown} */
+                            authType: "none" | "token" | "basic" | "hmac";
                             captureMode: boolean;
                             sampleSource: (never | null) | "example" | "schema" | "captured";
                             hasSample: boolean;
@@ -868,6 +956,8 @@ export interface paths {
                             updatedAt: string;
                         } & {
                             samplePayload: unknown;
+                            /** @description Ingest credentials, including secrets (object) */
+                            auth: unknown;
                         };
                     };
                 };
@@ -942,6 +1032,10 @@ export interface paths {
                                 url: string;
                             };
                             enabled: boolean;
+                            /** @description Delivery attempts before a webhook is marked dead */
+                            maxAttempts: number;
+                            /** @enum {unknown} */
+                            authType: "none" | "token" | "basic" | "hmac";
                             captureMode: boolean;
                             sampleSource: (never | null) | "example" | "schema" | "captured";
                             hasSample: boolean;
@@ -957,6 +1051,94 @@ export interface paths {
                             updatedAt: string;
                         } & {
                             samplePayload: unknown;
+                            /** @description Ingest credentials, including secrets (object) */
+                            auth: unknown;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            statusCode: number;
+                            error: string;
+                            message: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/relays/{id}/auth/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate a new secret or password for the relay's credentials; the old one stops working immediately */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            ingestKey: string;
+                            ingestUrl: string;
+                            discordWebhook: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                                /** @description Masked; the token is never returned */
+                                url: string;
+                            };
+                            enabled: boolean;
+                            /** @description Delivery attempts before a webhook is marked dead */
+                            maxAttempts: number;
+                            /** @enum {unknown} */
+                            authType: "none" | "token" | "basic" | "hmac";
+                            captureMode: boolean;
+                            sampleSource: (never | null) | "example" | "schema" | "captured";
+                            hasSample: boolean;
+                            templateCount: number;
+                            /** Format: date-time */
+                            lastReceivedAt: string | null;
+                            lastStatus: string | null;
+                            /** @description pending + processing + failed */
+                            backlog: number;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        } & {
+                            samplePayload: unknown;
+                            /** @description Ingest credentials, including secrets (object) */
+                            auth: unknown;
                         };
                     };
                 };
@@ -1103,6 +1285,10 @@ export interface paths {
                                 url: string;
                             };
                             enabled: boolean;
+                            /** @description Delivery attempts before a webhook is marked dead */
+                            maxAttempts: number;
+                            /** @enum {unknown} */
+                            authType: "none" | "token" | "basic" | "hmac";
                             captureMode: boolean;
                             sampleSource: (never | null) | "example" | "schema" | "captured";
                             hasSample: boolean;
@@ -1118,6 +1304,8 @@ export interface paths {
                             updatedAt: string;
                         } & {
                             samplePayload: unknown;
+                            /** @description Ingest credentials, including secrets (object) */
+                            auth: unknown;
                         };
                     };
                 };

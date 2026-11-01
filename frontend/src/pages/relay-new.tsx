@@ -4,10 +4,11 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import { api, errorMessage, unwrap } from '@/api/client';
-import type { TestResult } from '@/api/types';
+import type { RelayDetail, TestResult } from '@/api/types';
 import { PageHeader } from '@/components/common';
 import { SampleEditor } from '@/components/sample-editor';
-import { useSavedWebhooks, WebhookPicker, webhookChoice, type PickerValue } from '@/components/webhook-picker';
+import { AuthEditor, authDraft, authInput, type AuthDraft } from '@/components/auth-editor';
+import { useSavedWebhooks, WebhookPicker } from '@/components/webhook-picker';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -34,12 +35,12 @@ function StepOne({ onCreated }: { onCreated: (id: string) => void }) {
   const qc = useQueryClient();
   const [name, setName] = useState('');
   const saved = useSavedWebhooks();
-  // Until the user picks, default to their first saved webhook (or a new URL if they have none)
-  const [picked, setPicked] = useState<PickerValue | null>(null);
-  const picker = picked ?? { savedId: saved.data?.[0]?.id ?? null, url: '', name: '' };
-  const choice = webhookChoice(picker);
+  // Until the user picks, default to their first saved webhook
+  const [picked, setPicked] = useState<string | null>(null);
+  const webhookId = picked ?? saved.data?.[0]?.id ?? null;
+  const [auth, setAuth] = useState<AuthDraft>(authDraft());
   const create = useMutation({
-    mutationFn: () => unwrap(api.POST('/api/relays', { body: { name, ...choice! } })),
+    mutationFn: () => unwrap(api.POST('/api/relays', { body: { name, discordWebhookId: webhookId!, auth: authInput(auth) } })),
     onSuccess: async (r) => {
       void qc.invalidateQueries({ queryKey: ['relays'] });
       const test = (await unwrap(api.POST('/api/relays/{id}/test', { params: { path: { id: r.id } }, body: {} }))) as TestResult;
@@ -58,7 +59,7 @@ function StepOne({ onCreated }: { onCreated: (id: string) => void }) {
       <CardHeader>
         <CardTitle>Where should messages go?</CardTitle>
         <CardDescription>
-          Pick a saved Discord webhook, or paste a new one (in Discord: channel settings → Integrations → Webhooks → Copy Webhook URL).
+          Pick one of your saved Discord webhooks, or add a new one.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -68,8 +69,13 @@ function StepOne({ onCreated }: { onCreated: (id: string) => void }) {
             <Input id="name" required maxLength={100} placeholder="Vikunja tasks" value={name} onChange={(e) => setName(e.target.value)} />
             <p className="text-muted-foreground text-xs">Also used in the relay's URL.</p>
           </div>
-          {saved.isPending ? <Skeleton className="h-16" /> : <WebhookPicker value={picker} onChange={setPicked} />}
-          <Button type="submit" disabled={!name.trim() || !choice || create.isPending}>
+          <WebhookPicker value={webhookId} onChange={setPicked} />
+          <div className="space-y-2">
+            <Label>Security</Label>
+            <p className="text-muted-foreground text-xs">How the sending service must prove it's allowed to post. You can change this later.</p>
+            <AuthEditor value={auth} onChange={setAuth} />
+          </div>
+          <Button type="submit" disabled={!name.trim() || !webhookId || create.isPending}>
             Create and send a test message <ArrowRight />
           </Button>
         </form>
@@ -81,7 +87,7 @@ function StepOne({ onCreated }: { onCreated: (id: string) => void }) {
 function StepTwo({ relayId, onNext }: { relayId: string; onNext: () => void }) {
   const relay = useQuery({
     queryKey: ['relay', relayId],
-    queryFn: () => unwrap(api.GET('/api/relays/{id}', { params: { path: { id: relayId } } })),
+    queryFn: async () => (await unwrap(api.GET('/api/relays/{id}', { params: { path: { id: relayId } } }))) as RelayDetail,
   });
   if (!relay.data) return <Skeleton className="h-64" />;
   return (

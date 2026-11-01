@@ -187,6 +187,32 @@
               }
             }
           },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "403": {
             "description": "Default Response",
             "content": {
@@ -336,6 +362,32 @@
             }
           },
           "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
             "description": "Default Response",
             "content": {
               "application/json": {
@@ -833,6 +885,8 @@
                       "ingestUrl",
                       "discordWebhook",
                       "enabled",
+                      "maxAttempts",
+                      "authType",
                       "captureMode",
                       "sampleSource",
                       "hasSample",
@@ -880,6 +934,18 @@
                       },
                       "enabled": {
                         "type": "boolean"
+                      },
+                      "maxAttempts": {
+                        "type": "integer",
+                        "description": "Delivery attempts before a webhook is marked dead"
+                      },
+                      "authType": {
+                        "enum": [
+                          "none",
+                          "token",
+                          "basic",
+                          "hmac"
+                        ]
                       },
                       "captureMode": {
                         "type": "boolean"
@@ -986,6 +1052,67 @@
                   },
                   "enabled": {
                     "type": "boolean"
+                  },
+                  "maxAttempts": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 20,
+                    "description": "Delivery attempts before giving up (default 5)"
+                  },
+                  "auth": {
+                    "type": "object",
+                    "required": [
+                      "type"
+                    ],
+                    "properties": {
+                      "type": {
+                        "enum": [
+                          "none",
+                          "token",
+                          "basic",
+                          "hmac"
+                        ]
+                      },
+                      "headerName": {
+                        "type": "string",
+                        "maxLength": 100,
+                        "description": "token/hmac: header to read (default Authorization / X-Signature)"
+                      },
+                      "secret": {
+                        "type": "string",
+                        "maxLength": 500,
+                        "description": "token/hmac: omit to keep the current one, or to generate one"
+                      },
+                      "username": {
+                        "type": "string",
+                        "maxLength": 100,
+                        "description": "basic (default \"webhook\")"
+                      },
+                      "password": {
+                        "type": "string",
+                        "maxLength": 500,
+                        "description": "basic: omit to keep the current one, or to generate one"
+                      },
+                      "algorithm": {
+                        "enum": [
+                          "sha256",
+                          "sha1",
+                          "sha512"
+                        ]
+                      },
+                      "encoding": {
+                        "enum": [
+                          "hex",
+                          "base64"
+                        ]
+                      },
+                      "prefix": {
+                        "type": "string",
+                        "maxLength": 50,
+                        "description": "hmac: text before the digest, e.g. \"sha256=\" for GitHub"
+                      }
+                    },
+                    "description": "How senders must authenticate to the ingest URL"
                   }
                 }
               }
@@ -1013,6 +1140,8 @@
                         "ingestUrl",
                         "discordWebhook",
                         "enabled",
+                        "maxAttempts",
+                        "authType",
                         "captureMode",
                         "sampleSource",
                         "hasSample",
@@ -1060,6 +1189,18 @@
                         },
                         "enabled": {
                           "type": "boolean"
+                        },
+                        "maxAttempts": {
+                          "type": "integer",
+                          "description": "Delivery attempts before a webhook is marked dead"
+                        },
+                        "authType": {
+                          "enum": [
+                            "none",
+                            "token",
+                            "basic",
+                            "hmac"
+                          ]
                         },
                         "captureMode": {
                           "type": "boolean"
@@ -1125,10 +1266,14 @@
                     {
                       "type": "object",
                       "required": [
-                        "samplePayload"
+                        "samplePayload",
+                        "auth"
                       ],
                       "properties": {
-                        "samplePayload": {}
+                        "samplePayload": {},
+                        "auth": {
+                          "description": "Ingest credentials, including secrets (object)"
+                        }
                       }
                     }
                   ]
@@ -1203,6 +1348,8 @@
                         "ingestUrl",
                         "discordWebhook",
                         "enabled",
+                        "maxAttempts",
+                        "authType",
                         "captureMode",
                         "sampleSource",
                         "hasSample",
@@ -1250,6 +1397,18 @@
                         },
                         "enabled": {
                           "type": "boolean"
+                        },
+                        "maxAttempts": {
+                          "type": "integer",
+                          "description": "Delivery attempts before a webhook is marked dead"
+                        },
+                        "authType": {
+                          "enum": [
+                            "none",
+                            "token",
+                            "basic",
+                            "hmac"
+                          ]
                         },
                         "captureMode": {
                           "type": "boolean"
@@ -1315,10 +1474,14 @@
                     {
                       "type": "object",
                       "required": [
-                        "samplePayload"
+                        "samplePayload",
+                        "auth"
                       ],
                       "properties": {
-                        "samplePayload": {}
+                        "samplePayload": {},
+                        "auth": {
+                          "description": "Ingest credentials, including secrets (object)"
+                        }
                       }
                     }
                   ]
@@ -1388,6 +1551,67 @@
                   },
                   "enabled": {
                     "type": "boolean"
+                  },
+                  "maxAttempts": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 20,
+                    "description": "Delivery attempts before giving up (default 5)"
+                  },
+                  "auth": {
+                    "type": "object",
+                    "required": [
+                      "type"
+                    ],
+                    "properties": {
+                      "type": {
+                        "enum": [
+                          "none",
+                          "token",
+                          "basic",
+                          "hmac"
+                        ]
+                      },
+                      "headerName": {
+                        "type": "string",
+                        "maxLength": 100,
+                        "description": "token/hmac: header to read (default Authorization / X-Signature)"
+                      },
+                      "secret": {
+                        "type": "string",
+                        "maxLength": 500,
+                        "description": "token/hmac: omit to keep the current one, or to generate one"
+                      },
+                      "username": {
+                        "type": "string",
+                        "maxLength": 100,
+                        "description": "basic (default \"webhook\")"
+                      },
+                      "password": {
+                        "type": "string",
+                        "maxLength": 500,
+                        "description": "basic: omit to keep the current one, or to generate one"
+                      },
+                      "algorithm": {
+                        "enum": [
+                          "sha256",
+                          "sha1",
+                          "sha512"
+                        ]
+                      },
+                      "encoding": {
+                        "enum": [
+                          "hex",
+                          "base64"
+                        ]
+                      },
+                      "prefix": {
+                        "type": "string",
+                        "maxLength": 50,
+                        "description": "hmac: text before the digest, e.g. \"sha256=\" for GitHub"
+                      }
+                    },
+                    "description": "How senders must authenticate to the ingest URL"
                   }
                 }
               }
@@ -1426,6 +1650,8 @@
                         "ingestUrl",
                         "discordWebhook",
                         "enabled",
+                        "maxAttempts",
+                        "authType",
                         "captureMode",
                         "sampleSource",
                         "hasSample",
@@ -1473,6 +1699,18 @@
                         },
                         "enabled": {
                           "type": "boolean"
+                        },
+                        "maxAttempts": {
+                          "type": "integer",
+                          "description": "Delivery attempts before a webhook is marked dead"
+                        },
+                        "authType": {
+                          "enum": [
+                            "none",
+                            "token",
+                            "basic",
+                            "hmac"
+                          ]
                         },
                         "captureMode": {
                           "type": "boolean"
@@ -1538,10 +1776,14 @@
                     {
                       "type": "object",
                       "required": [
-                        "samplePayload"
+                        "samplePayload",
+                        "auth"
                       ],
                       "properties": {
-                        "samplePayload": {}
+                        "samplePayload": {},
+                        "auth": {
+                          "description": "Ingest credentials, including secrets (object)"
+                        }
                       }
                     }
                   ]
@@ -1713,6 +1955,8 @@
                         "ingestUrl",
                         "discordWebhook",
                         "enabled",
+                        "maxAttempts",
+                        "authType",
                         "captureMode",
                         "sampleSource",
                         "hasSample",
@@ -1760,6 +2004,18 @@
                         },
                         "enabled": {
                           "type": "boolean"
+                        },
+                        "maxAttempts": {
+                          "type": "integer",
+                          "description": "Delivery attempts before a webhook is marked dead"
+                        },
+                        "authType": {
+                          "enum": [
+                            "none",
+                            "token",
+                            "basic",
+                            "hmac"
+                          ]
                         },
                         "captureMode": {
                           "type": "boolean"
@@ -1825,10 +2081,222 @@
                     {
                       "type": "object",
                       "required": [
-                        "samplePayload"
+                        "samplePayload",
+                        "auth"
                       ],
                       "properties": {
-                        "samplePayload": {}
+                        "samplePayload": {},
+                        "auth": {
+                          "description": "Ingest credentials, including secrets (object)"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/relays/{id}/auth/rotate": {
+      "post": {
+        "summary": "Generate a new secret or password for the relay's credentials; the old one stops working immediately",
+        "tags": [
+          "relays"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "name",
+                        "ingestKey",
+                        "ingestUrl",
+                        "discordWebhook",
+                        "enabled",
+                        "maxAttempts",
+                        "authType",
+                        "captureMode",
+                        "sampleSource",
+                        "hasSample",
+                        "templateCount",
+                        "lastReceivedAt",
+                        "lastStatus",
+                        "backlog",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "ingestKey": {
+                          "type": "string"
+                        },
+                        "ingestUrl": {
+                          "type": "string"
+                        },
+                        "discordWebhook": {
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "name",
+                            "url"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "url": {
+                              "type": "string",
+                              "description": "Masked; the token is never returned"
+                            }
+                          }
+                        },
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "maxAttempts": {
+                          "type": "integer",
+                          "description": "Delivery attempts before a webhook is marked dead"
+                        },
+                        "authType": {
+                          "enum": [
+                            "none",
+                            "token",
+                            "basic",
+                            "hmac"
+                          ]
+                        },
+                        "captureMode": {
+                          "type": "boolean"
+                        },
+                        "sampleSource": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "nullable": true,
+                              "enum": [
+                                null
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "example"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "schema"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "captured"
+                              ]
+                            }
+                          ]
+                        },
+                        "hasSample": {
+                          "type": "boolean"
+                        },
+                        "templateCount": {
+                          "type": "integer"
+                        },
+                        "lastReceivedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "lastStatus": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "backlog": {
+                          "type": "integer",
+                          "description": "pending + processing + failed"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "samplePayload",
+                        "auth"
+                      ],
+                      "properties": {
+                        "samplePayload": {},
+                        "auth": {
+                          "description": "Ingest credentials, including secrets (object)"
+                        }
                       }
                     }
                   ]
@@ -2055,6 +2523,8 @@
                         "ingestUrl",
                         "discordWebhook",
                         "enabled",
+                        "maxAttempts",
+                        "authType",
                         "captureMode",
                         "sampleSource",
                         "hasSample",
@@ -2102,6 +2572,18 @@
                         },
                         "enabled": {
                           "type": "boolean"
+                        },
+                        "maxAttempts": {
+                          "type": "integer",
+                          "description": "Delivery attempts before a webhook is marked dead"
+                        },
+                        "authType": {
+                          "enum": [
+                            "none",
+                            "token",
+                            "basic",
+                            "hmac"
+                          ]
                         },
                         "captureMode": {
                           "type": "boolean"
@@ -2167,10 +2649,14 @@
                     {
                       "type": "object",
                       "required": [
-                        "samplePayload"
+                        "samplePayload",
+                        "auth"
                       ],
                       "properties": {
-                        "samplePayload": {}
+                        "samplePayload": {},
+                        "auth": {
+                          "description": "Ingest credentials, including secrets (object)"
+                        }
                       }
                     }
                   ]

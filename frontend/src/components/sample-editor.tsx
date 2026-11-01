@@ -1,4 +1,4 @@
-import { looksLikeJsonSchema } from '@send-any-webhook/shared';
+import { curlCommand, looksLikeJsonSchema } from '@send-any-webhook/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Radio } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -16,8 +16,11 @@ const EXAMPLE = `{
   "task": { "title": "Fix login bug", "url": "https://example.com/tasks/42" }
 }`;
 
-export function curlExample(url: string) {
-  return `curl -X POST '${url}' \\\n  -H 'Content-Type: application/json' \\\n  -d '{"event":"test","message":"Hello from curl"}'`;
+const TEST_BODY = { event: 'test', message: 'Hello from curl' };
+
+/** A copy-paste curl command for a relay, with its credentials, posting its sample (or a test body). */
+export function relayCurl(relay: RelayDetail, payload?: unknown) {
+  return curlCommand(relay.ingestUrl, payload ?? (relay.hasSample ? relay.samplePayload : TEST_BODY), relay.auth);
 }
 
 /** Lets the user set a relay's sample payload. Calls onSaved after the sample changes. */
@@ -50,7 +53,7 @@ export function SampleEditor({ relay, onSaved }: { relay: RelayDetail; onSaved?:
   // While capturing, poll until the backend has stored a captured sample
   const poll = useQuery({
     queryKey: ['relay', relay.id, 'capture-poll'],
-    queryFn: () => unwrap(api.GET('/api/relays/{id}', { params: { path: { id: relay.id } } })),
+    queryFn: async () => (await unwrap(api.GET('/api/relays/{id}', { params: { path: { id: relay.id } } }))) as RelayDetail,
     enabled: capturing,
     refetchInterval: 2000,
   });
@@ -132,7 +135,7 @@ export function SampleEditor({ relay, onSaved }: { relay: RelayDetail; onSaved?:
             <div className="flex-1 text-sm">
               <div className="font-medium">Waiting for the first webhook…</div>
               <div className="text-muted-foreground">Test it yourself:</div>
-              <pre className="bg-muted mt-2 overflow-x-auto rounded p-2 text-xs">{curlExample(relay.ingestUrl)}</pre>
+              <pre className="bg-muted mt-2 overflow-x-auto rounded p-2 text-xs">{relayCurl(relay, TEST_BODY)}</pre>
             </div>
             <Button variant="outline" onClick={() => capture.mutate(false)} disabled={capture.isPending}>
               Stop

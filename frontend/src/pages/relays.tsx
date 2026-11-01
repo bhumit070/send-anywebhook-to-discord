@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertTriangle, Plus, Webhook } from 'lucide-react';
+import { AlertTriangle, Plus, ShieldAlert, Webhook } from 'lucide-react';
 import { Link } from 'react-router';
 import { toast } from 'sonner';
 import { api, errorMessage, unwrap } from '@/api/client';
@@ -37,6 +37,11 @@ function RelayRow({ relay }: { relay: Relay }) {
               {relay.name}
             </Link>
             {!relay.enabled && <Badge variant="secondary">Disabled</Badge>}
+            {relay.authType === 'none' && (
+              <Badge variant="outline" className="border-amber-500/40 text-amber-700 dark:text-amber-300" title="Anyone with the URL can post">
+                <ShieldAlert /> URL only
+              </Badge>
+            )}
             {needsSetup && (
               <Badge variant="outline" className="border-amber-500/40 text-amber-700 dark:text-amber-300">
                 <AlertTriangle /> No template

@@ -1,85 +1,139 @@
 import { isDiscordWebhookUrl } from '@send-any-webhook/shared';
-import { useQuery } from '@tanstack/react-query';
-import { api, unwrap } from '@/api/client';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Plus } from 'lucide-react';
+import { useState, type FormEvent } from 'react';
+import { api, errorMessage, unwrap } from '@/api/client';
+import type { SavedWebhook } from '@/api/types';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-/** What the relay API expects: a saved webhook, or a URL to save (reused if already saved). */
-export type WebhookChoice =
-  | { discordWebhookId: string }
-  | { discordWebhookUrl: string; discordWebhookName?: string };
-
-export interface PickerValue {
-  savedId: string | null; // null = paste a new URL
-  url: string;
-  name: string;
-}
-
-export const NEW = '__new';
+const NEW = '__new';
 
 export function useSavedWebhooks() {
   return useQuery({ queryKey: ['discord-webhooks'], queryFn: () => unwrap(api.GET('/api/discord-webhooks')) });
 }
 
-/** The request fields for a picker value, or null when it isn't complete yet. */
-export function webhookChoice(v: PickerValue): WebhookChoice | null {
-  if (v.savedId) return { discordWebhookId: v.savedId };
-  if (!isDiscordWebhookUrl(v.url)) return null;
-  return { discordWebhookUrl: v.url.trim(), ...(v.name.trim() && { discordWebhookName: v.name.trim() }) };
-}
-
-/** Choose a saved Discord webhook, or paste a new URL (which gets saved for next time). */
-export function WebhookPicker({ value, onChange, id = 'webhook' }: { value: PickerValue; onChange: (v: PickerValue) => void; id?: string }) {
-  const saved = useSavedWebhooks();
-  const isNew = value.savedId === null;
-  const urlInvalid = isNew && value.url !== '' && !isDiscordWebhookUrl(value.url);
+/** Dialog that saves a Discord webhook to the user's list and reports the new one. */
+export function NewWebhookDialog({
+  open,
+  onOpenChange,
+  onCreated,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCreated: (webhook: SavedWebhook) => void;
+}) {
+  const qc = useQueryClient();
+  const [name, setName] = useState('');
+  const [url, setUrl] = useState('');
+  const urlInvalid = url !== '' && !isDiscordWebhookUrl(url);
+  const create = useMutation({
+    mutationFn: () => unwrap(api.POST('/api/discord-webhooks', { body: { name: name.trim(), url: url.trim() } })),
+    onSuccess: async (webhook) => {
+      await qc.invalidateQueries({ queryKey: ['discord-webhooks'] });
+      onCreated(webhook);
+      setName('');
+      setUrl('');
+      onOpenChange(false);
+    },
+  });
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    // The dialog renders in a portal, but React still bubbles events to the form around the picker
+    e.stopPropagation();
+    create.mutate();
+  };
 
   return (
-    <div className="space-y-3">
-      {!!saved.data?.length && (
-        <div className="space-y-2">
-          <Label htmlFor={`${id}-select`}>Discord webhook</Label>
-          <Select value={value.savedId ?? NEW} onValueChange={(v) => onChange({ ...value, savedId: v === NEW ? null : v })}>
-            <SelectTrigger id={`${id}-select`} className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {saved.data.map((w) => (
-                <SelectItem key={w.id} value={w.id}>
-                  <span className="font-medium">{w.name}</span>
-                  <span className="text-muted-foreground ml-2 font-mono text-xs">{w.url.replace('https://discord.com/api/webhooks/', '…/')}</span>
-                </SelectItem>
-              ))}
-              <SelectSeparator />
-              <SelectItem value={NEW}>+ Paste a new webhook URL</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-      {isNew && (
-        <div className="grid gap-3 sm:grid-cols-[1fr_2fr]">
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) create.reset();
+        onOpenChange(o);
+      }}
+    >
+      <DialogContent>
+        <form onSubmit={submit} className="space-y-4">
+          <DialogHeader>
+            <DialogTitle>New Discord webhook</DialogTitle>
+            <DialogDescription>
+              In Discord: channel settings → Integrations → Webhooks → New Webhook → Copy Webhook URL. It's saved to your Discord webhooks so
+              you can reuse it.
+            </DialogDescription>
+          </DialogHeader>
           <div className="space-y-2">
-            <Label htmlFor={`${id}-name`}>Save as</Label>
-            <Input id={`${id}-name`} placeholder="#dev-alerts" maxLength={100} value={value.name} onChange={(e) => onChange({ ...value, name: e.target.value })} />
+            <Label htmlFor="new-webhook-name">Name</Label>
+            <Input id="new-webhook-name" required autoFocus maxLength={100} placeholder="#dev-alerts" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor={`${id}-url`}>Discord webhook URL</Label>
+            <Label htmlFor="new-webhook-url">Webhook URL</Label>
             <Input
-              id={`${id}-url`}
+              id="new-webhook-url"
+              required
               placeholder="https://discord.com/api/webhooks/…"
-              value={value.url}
-              onChange={(e) => onChange({ ...value, url: e.target.value })}
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
               aria-invalid={urlInvalid}
             />
+            {urlInvalid && <p className="text-destructive text-xs">That doesn't look like a Discord webhook URL.</p>}
           </div>
-          <p className={`text-xs sm:col-span-2 ${urlInvalid ? 'text-destructive' : 'text-muted-foreground'}`}>
-            {urlInvalid
-              ? "That doesn't look like a Discord webhook URL."
-              : 'Saved to your webhook list so you can reuse it. Pasting a URL you already saved reuses that one.'}
-          </p>
-        </div>
-      )}
+          {create.isError && (
+            <Alert variant="destructive">
+              <AlertDescription>{errorMessage(create.error)}</AlertDescription>
+            </Alert>
+          )}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={!name.trim() || !isDiscordWebhookUrl(url) || create.isPending}>
+              Save and select
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Dropdown of saved Discord webhooks, with a dialog to add a new one (which is then selected). */
+export function WebhookPicker({ value, onChange, id = 'webhook' }: { value: string | null; onChange: (id: string) => void; id?: string }) {
+  const saved = useSavedWebhooks();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const list = saved.data ?? [];
+
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id}>Discord webhook</Label>
+      <div className="flex gap-2">
+        <Select
+          value={value ?? ''}
+          onValueChange={(v) => (v === NEW ? setDialogOpen(true) : onChange(v))}
+          disabled={saved.isPending}
+        >
+          <SelectTrigger id={id} className="min-w-0 flex-1">
+            <SelectValue placeholder={list.length ? 'Choose a Discord webhook' : 'No saved webhooks yet: create one'} />
+          </SelectTrigger>
+          <SelectContent>
+            {list.map((w) => (
+              <SelectItem key={w.id} value={w.id}>
+                <span className="font-medium">{w.name}</span>
+                <span className="text-muted-foreground ml-2 font-mono text-xs">{w.url.replace('https://discord.com/api/webhooks/', '…/')}</span>
+              </SelectItem>
+            ))}
+            {list.length > 0 && <SelectSeparator />}
+            <SelectItem value={NEW}>+ New webhook…</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button type="button" variant="outline" onClick={() => setDialogOpen(true)}>
+          <Plus /> New webhook
+        </Button>
+      </div>
+      <NewWebhookDialog open={dialogOpen} onOpenChange={setDialogOpen} onCreated={(w) => onChange(w.id)} />
     </div>
   );
 }

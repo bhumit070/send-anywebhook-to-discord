@@ -17,7 +17,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import { api, errorMessage, unwrap } from '@/api/client';
-import type { Template, TestResult } from '@/api/types';
+import type { RelayDetail, Template, TestResult } from '@/api/types';
 import { JsonEditor, parseJson } from '@/components/common';
 import { DiscordPreview, type DiscordTheme } from '@/components/discord/preview';
 import { FieldTree } from '@/components/mapping/field-tree';
@@ -56,7 +56,7 @@ export function TemplateEditorPage() {
   const [params] = useSearchParams();
   const relay = useQuery({
     queryKey: ['relay', relayId],
-    queryFn: () => unwrap(api.GET('/api/relays/{id}', { params: { path: { id: relayId } } })),
+    queryFn: async () => (await unwrap(api.GET('/api/relays/{id}', { params: { path: { id: relayId } } }))) as RelayDetail,
   });
   const templates = useTemplates(relayId);
   const existing = templateId ? templates.data?.find((t) => t.id === templateId) : undefined;
