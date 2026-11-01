@@ -5,13 +5,13 @@ services:
     image: postgres:18-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: send-any-webhook
-      POSTGRES_DB: send-any-webhook
+      POSTGRES_USER: send_any_webhook
+      POSTGRES_DB: send_any_webhook
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
     volumes:
       - pgdata:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U send-any-webhook -d send-any-webhook"]
+      test: ["CMD-SHELL", "pg_isready -U send_any_webhook -d send_any_webhook"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -23,7 +23,7 @@ services:
     image: send-any-webhook-backend
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgres://send-any-webhook:${POSTGRES_PASSWORD}@postgres:5432/send-any-webhook
+      DATABASE_URL: postgres://send_any_webhook:${POSTGRES_PASSWORD}@postgres:5432/send_any_webhook
       APP_SECRET: ${APP_SECRET:?set APP_SECRET in .env (openssl rand -hex 32)}
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
       AUTH_DISABLED: ${AUTH_DISABLED:-false}

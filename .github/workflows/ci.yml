@@ -13,14 +13,14 @@ jobs:
       postgres:
         image: postgres:18-alpine
         env:
-          POSTGRES_USER: send-any-webhook
-          POSTGRES_PASSWORD: send-any-webhook
+          POSTGRES_USER: send_any_webhook
+          POSTGRES_PASSWORD: send_any_webhook
           POSTGRES_DB: send_any_webhook_test
         ports: ['5432:5432']
         options: >-
-          --health-cmd "pg_isready -U send-any-webhook" --health-interval 5s --health-timeout 3s --health-retries 10
+          --health-cmd "pg_isready -U send_any_webhook" --health-interval 5s --health-timeout 3s --health-retries 10
     env:
-      TEST_DATABASE_URL: postgres://send-any-webhook:send-any-webhook@localhost:5432/send_any_webhook_test
+      TEST_DATABASE_URL: postgres://send_any_webhook:send_any_webhook@localhost:5432/send_any_webhook_test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
