@@ -35,7 +35,8 @@ export async function buildApp(deps: AppDeps, opts: FastifyServerOptions = {}) {
   const send = deps.send ?? sendToDiscord;
   const app = Fastify({
     bodyLimit: INGEST_BODY_LIMIT,
-    trustProxy: true, // runs behind the frontend nginx
+    // Trust only our own proxies; anything further left in X-Forwarded-For is client-supplied
+    trustProxy: (_address: string, hop: number) => hop < config.trustProxyHops,
     ...opts,
   }).withTypeProvider<TypeBoxTypeProvider>();
 

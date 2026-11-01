@@ -28,6 +28,7 @@ Changing `APP_SECRET` logs everyone out. The app can then no longer decrypt stor
 | `PORT` | `8080` | Host port the web UI, API and ingest endpoint are published on. |
 | `PUBLIC_BASE_URL` | `http://localhost:8080` | The address people and services reach the app at. Relay URLs shown in the UI are built from it. If it starts with `https://`, the session cookie is marked `Secure`. |
 | `LOG_LEVEL` | `info` | Backend log level: `fatal`, `error`, `warn`, `info`, `debug` or `trace`. Logs are JSON on stdout. |
+| `TRUST_PROXY_HOPS` | `1` | How many reverse proxies sit in front of the backend. `1` is the bundled nginx; use `2` when you add your own proxy for HTTPS. The client IP (used for login rate limits and shown in logs) is read from `X-Forwarded-For` only through these proxies, so clients can't fake it. |
 
 ## Authentication
 

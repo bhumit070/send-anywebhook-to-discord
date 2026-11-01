@@ -31,6 +31,7 @@ services:
       EVENT_RETENTION_DAYS: ${EVENT_RETENTION_DAYS:-14}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       RUN_WORKER: ${RUN_WORKER:-true}
+      TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-1}
     depends_on:
       postgres:
         condition: service_healthy

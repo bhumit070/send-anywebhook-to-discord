@@ -50,6 +50,8 @@ PUBLIC_BASE_URL=https://webhooks.example.com
 
 `PUBLIC_BASE_URL` is used for the relay URLs shown in the UI. Because it starts with `https://`, the session cookie is marked `Secure`.
 
+Also set `TRUST_PROXY_HOPS=2`: your proxy plus the bundled nginx. Otherwise every request looks like it comes from your proxy, and all users share one login rate limit.
+
 **Caddy** (gets certificates automatically):
 
 ```

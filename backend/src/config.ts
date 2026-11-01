@@ -32,6 +32,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
     eventRetentionDays: int('EVENT_RETENTION_DAYS', env.EVENT_RETENTION_DAYS, 14),
     /** Run the delivery worker inside the API process. Set false when running workers separately. */
     runWorker: bool(env.RUN_WORKER, true),
+    /** Reverse proxies in front of the backend whose X-Forwarded-For is trusted (the bundled nginx = 1). */
+    trustProxyHops: int('TRUST_PROXY_HOPS', env.TRUST_PROXY_HOPS, 1),
   };
 }
 
