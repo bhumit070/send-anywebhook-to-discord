@@ -4,7 +4,7 @@ Relay webhooks from any service to a Discord channel, even services that only kn
 
 📖 **Documentation: https://bhumit070.github.io/send-anywebhook-to-discord/**
 
-1. Create a **relay**: a name plus the Discord channel's webhook URL. You get a URL like `https://your-host/h/vikunja_k3J9xQp2…`.
+1. Create a **relay**: a name plus a Discord channel's webhook URL. Webhook URLs are saved once and reused across relays. You get a URL like `https://your-host/h/vikunja_k3J9xQp2…`.
 2. Give it a **sample payload**: paste example JSON, paste a JSON Schema, or capture the next real webhook.
 3. **Map fields** onto a Discord message with the visual mapper (drag fields onto title, description, color, fields…) and watch a Discord-style preview update live. Or write Liquid templates directly.
 4. Paste the URL into the other service. Every webhook is queued, rendered, sent to Discord with retries, and logged with every attempt.
@@ -17,9 +17,9 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-- UI: http://localhost:8080 (sign up; the first account is just a normal user)
-- API docs (Swagger): http://localhost:8080/docs
-- Health: http://localhost:8080/healthz
+- UI: http://localhost:5252 (sign up; the first account is just a normal user)
+- API docs (Swagger): http://localhost:5252/docs
+- Health: http://localhost:5252/healthz
 
 Migrations run automatically when the backend starts. Put the stack behind HTTPS (any reverse proxy) and set `PUBLIC_BASE_URL` so relay URLs are shown correctly and the session cookie is marked `Secure`.
 
@@ -30,7 +30,7 @@ See [`.env.example`](.env.example).
 | Variable | Default | Meaning |
 |---|---|---|
 | `APP_SECRET` | required | Signs sessions and encrypts stored Discord webhook URLs. Changing it logs everyone out and makes stored webhook URLs unreadable (re-enter them). |
-| `PUBLIC_BASE_URL` | `http://localhost:8080` | Where people reach this instance. |
+| `PUBLIC_BASE_URL` | `http://localhost:5252` | Where people reach this instance. |
 | `AUTH_DISABLED` | `false` | Turns off login; everyone acts as one local user. Only for private networks. Ingest URLs still need their secret key. |
 | `ALLOW_REGISTRATION` | `true` | Allow new sign-ups. |
 | `EVENT_RETENTION_DAYS` | `14` | Delivered/skipped logs are deleted after this many days; dead/rejected after twice that. |
@@ -62,8 +62,8 @@ Requires Node 24+ and Docker (for Postgres).
 npm install
 cp .env.example .env               # uncomment DATABASE_URL (same password as POSTGRES_PASSWORD)
 npm run db:up                      # Postgres on localhost:5432
-npm run dev -w @send-any-webhook/backend   # API + worker on :3000
-npm run dev -w @send-any-webhook/frontend  # UI on :5173, proxies /api, /h, /docs to :3000
+npm run dev -w @send-any-webhook/backend   # API + worker on :5353
+npm run dev -w @send-any-webhook/frontend  # UI on :5252, proxies /api, /h, /docs to :5353
 ```
 
 ```sh

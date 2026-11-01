@@ -17,7 +17,7 @@ nav_order: 5
 | `backend` | Node.js 24 | API, Swagger, and the delivery worker. Runs database migrations on startup |
 | `postgres` | postgres:18-alpine | All data, including the delivery queue. Stored in the `pgdata` volume |
 
-Only the frontend's port (default `8080`) needs to be reachable.
+Only the frontend's port (default `5252`) needs to be reachable. The backend is also published on `127.0.0.1:5353` (`BACKEND_PORT`) for direct API access from the same machine; it is never exposed to the network.
 
 ## Prebuilt images
 
@@ -42,7 +42,7 @@ Pin a version with `IMAGE_TAG=1.2.3` in `.env`.
 
 ## HTTPS and a public URL
 
-Other services need to reach the app, so in practice it runs on a server behind HTTPS. Point a domain at the server, put any reverse proxy in front of port `8080`, and set:
+Other services need to reach the app, so in practice it runs on a server behind HTTPS. Point a domain at the server, put any reverse proxy in front of port `5252`, and set:
 
 ```sh
 PUBLIC_BASE_URL=https://webhooks.example.com
@@ -56,7 +56,7 @@ Also set `TRUST_PROXY_HOPS=2`: your proxy plus the bundled nginx. Otherwise ever
 
 ```
 webhooks.example.com {
-    reverse_proxy localhost:8080
+    reverse_proxy localhost:5252
 }
 ```
 
@@ -70,7 +70,7 @@ server {
 
     client_max_body_size 2m;
     location / {
-        proxy_pass http://127.0.0.1:8080;
+        proxy_pass http://127.0.0.1:5252;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
@@ -79,7 +79,7 @@ server {
 ```
 
 {: .tip }
-To bind the app only to localhost so it can't be reached except through the proxy, change the frontend's port mapping to `"127.0.0.1:8080:80"`.
+To bind the app only to localhost so it can't be reached except through the proxy, change the frontend's port mapping to `"127.0.0.1:5252:80"`.
 
 ## Locking it down
 
@@ -104,7 +104,7 @@ docker compose up -d
 ```
 
 {: .warning }
-A backup restored with a different `APP_SECRET` keeps its relays and logs, but the stored Discord webhook URLs can't be decrypted. Paste them again on each relay's Setup tab.
+A backup restored with a different `APP_SECRET` keeps its relays and logs, but the stored Discord webhook URLs can't be decrypted. Paste them again on the **Discord webhooks** page (**Edit**).
 
 ## Upgrading
 
@@ -128,7 +128,7 @@ Migrations run when the new backend starts. Webhooks that arrive while the backe
 
 One backend handles a lot. Ingest is a single insert, and delivery is limited mostly by Discord. If you do need more:
 
-- **More backends**: `docker compose up -d --scale backend=3`, then `docker compose restart frontend` so nginx picks up the new containers. Every backend runs a worker. Workers claim queue rows with `FOR UPDATE SKIP LOCKED`, so a webhook is never sent twice.
+- **More backends**: remove the backend's `ports:` mapping (only one container can bind `5353`), then `docker compose up -d --scale backend=3` and `docker compose restart frontend` so nginx picks up the new containers. Every backend runs a worker. Workers claim queue rows with `FOR UPDATE SKIP LOCKED`, so a webhook is never sent twice.
 - **Separate API and workers**: set `RUN_WORKER=false` on the API containers and run extra backend containers with `RUN_WORKER=true` as workers.
 
 {: .note }

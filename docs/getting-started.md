@@ -36,9 +36,9 @@ The first build takes a few minutes. When `docker compose ps` shows all three se
 
 | URL | What |
 |---|---|
-| <http://localhost:8080> | The web UI |
-| <http://localhost:8080/docs> | Swagger API docs |
-| <http://localhost:8080/healthz> | Health check (`{"status":"ok","db":"ok"}`) |
+| <http://localhost:5252> | The web UI |
+| <http://localhost:5252/docs> | Swagger API docs |
+| <http://localhost:5252/healthz> | Health check (`{"status":"ok","db":"ok"}`) |
 
 {: .note }
 Database migrations run automatically every time the backend starts. There's no separate setup step.
@@ -48,7 +48,7 @@ Don't want to build images? See [Prebuilt images](deployment.md#prebuilt-images)
 
 ## 2. Create an account
 
-Open <http://localhost:8080> and click **Sign up**. Passwords need at least 8 characters.
+Open <http://localhost:5252> and click **Sign up**. Passwords need at least 8 characters.
 
 Running the app only for yourself on a private network? Set `AUTH_DISABLED=true` in `.env` and skip logins entirely. See [Configuration](configuration.md#authentication).
 
@@ -66,7 +66,7 @@ Click **New relay** and follow the three steps:
 
 ![The New relay form]({{ '/assets/images/new-relay.png' | relative_url }})
 
-1. **Name and Discord channel.** Enter a name (it also becomes part of the URL) and paste the webhook URL. The app sends a test message to the channel so you know it works.
+1. **Name and Discord channel.** Enter a name (it also becomes part of the URL) and paste the webhook URL, giving it a name like `#dev-alerts`. The URL is saved, so next time you just pick it from the list. The app sends a test message to the channel so you know it works.
 2. **Sample payload.** Show the app what the other service sends. Choose one:
    - **Paste JSON**: an example from the service's docs.
    - **JSON Schema**: the app generates an example from the schema.
@@ -80,7 +80,7 @@ Click **New relay** and follow the three steps:
 Copy the relay's URL from its page and paste it wherever the other service asks for a webhook URL. Try it from a terminal first:
 
 ```sh
-curl -X POST 'http://localhost:8080/h/<your-relay-key>' \
+curl -X POST 'http://localhost:5252/h/<your-relay-key>' \
   -H 'Content-Type: application/json' \
   -d '{"event":"test","message":"Hello from curl"}'
 ```

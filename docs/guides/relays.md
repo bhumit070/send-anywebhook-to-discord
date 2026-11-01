@@ -7,7 +7,7 @@ nav_order: 1
 # Relays
 {: .no_toc }
 
-A **relay** connects one incoming URL to one Discord channel. Make one relay per source (one for Vikunja, one for your CI, and so on). To send the same events to two channels, create two relays.
+A **relay** connects one incoming URL to one Discord channel. Make one relay per source (one for Vikunja, one for your CI, and so on). Several relays can send to the same channel through one [saved Discord webhook](#saved-discord-webhooks). To send the same events to two channels, create two relays.
 
 1. TOC
 {:toc}
@@ -27,18 +27,25 @@ The part after `/h/` is the relay's **key**: a readable slug from its name, then
 
 The URL accepts `POST` and `PUT` with a JSON body. See [the ingest endpoint](../api.md#ingest-endpoint) for every response code.
 
-## The Discord channel
+## Saved Discord webhooks
 
-Paste the channel's webhook URL from **Channel settings → Integrations → Webhooks**. The app:
+Discord webhook URLs are saved once and reused. The **Discord webhooks** page lists yours, with the relays that use each one.
 
-- accepts only real Discord webhook URLs (`https://discord.com/api/webhooks/…`, including `ptb.` and `canary.`);
-- stores them encrypted with `APP_SECRET`;
-- never shows the full token again. The UI shows a masked version like `…/webhooks/1234…/AbCd…wxyz`.
+![Saved Discord webhooks]({{ '/assets/images/discord-webhooks.png' | relative_url }})
 
-To point a relay at another channel, use **Setup → Discord channel → Replace**. **Send a test message** posts a short message to check the channel works.
+- **Add** a webhook there with a name (like `#dev-alerts`) and its URL from **Channel settings → Integrations → Webhooks → Copy Webhook URL**. You can also just paste a URL while creating a relay; it's saved automatically. Pasting a URL you already saved reuses that entry instead of creating a duplicate.
+- **Edit** renames it or replaces its URL. **Every relay using it follows the new URL**, so moving a team to a new channel is one change.
+- **Test** posts a short message to the channel.
+- **Delete** works only when no relay uses it. Move those relays to another webhook first. (The webhook itself keeps existing in Discord.)
+
+The app accepts only real Discord webhook URLs (`https://discord.com/api/webhooks/…`, including `ptb.` and `canary.`), stores them encrypted with `APP_SECRET`, and never shows the token again. The UI shows a masked version like `…/webhooks/1234…/AbCd…wxyz`.
+
+## The relay's Discord channel
+
+When creating a relay, pick a saved webhook (your first one is preselected) or choose **Paste a new webhook URL**. To switch later, open the relay's **Setup** tab, choose another webhook under **Discord channel** and click **Use this webhook**. **Send a test message** checks the channel works.
 
 {: .note }
-If Discord answers **401** or **404** for a delivery (the webhook was deleted or its token is wrong), the app **disables the relay** so it stops retrying a webhook that can't work. Paste a working URL and turn the relay back on.
+If Discord answers **401** or **404** for a delivery (the webhook was deleted in Discord or its token is wrong), the app **disables every relay that uses that saved webhook**, so they stop retrying a webhook that can't work. Edit the saved webhook with a working URL (or move the relays to another one) and turn them back on.
 
 ## Enabling and disabling
 

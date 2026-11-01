@@ -6,7 +6,7 @@ nav_order: 6
 # API
 {: .no_toc }
 
-Everything the UI does goes through a JSON API, documented with **Swagger at `/docs`** on your instance (for example <http://localhost:8080/docs>). The raw OpenAPI spec is at `/docs/json`.
+Everything the UI does goes through a JSON API, documented with **Swagger at `/docs`** on your instance (for example <http://localhost:5252/docs>). The raw OpenAPI spec is at `/docs/json`.
 
 1. TOC
 {:toc}
@@ -64,6 +64,7 @@ In Swagger UI, log in through the `/api/auth/login` operation ("Try it out"). Th
 |---|---|
 | System | `GET /healthz`, `GET /api/config` |
 | Auth | `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me` |
+| Discord webhooks | `GET/POST /api/discord-webhooks`, `PATCH/DELETE /api/discord-webhooks/{id}`, `POST /api/discord-webhooks/{id}/test` |
 | Relays | `GET/POST /api/relays`, `GET/PATCH/DELETE /api/relays/{id}`, `POST /api/relays/{id}/rotate-key`, `PUT /api/relays/{id}/sample`, `POST /api/relays/{id}/capture`, `POST /api/relays/{id}/test` |
 | Templates | `GET/POST /api/relays/{id}/templates`, `PATCH/DELETE /api/relays/{id}/templates/{templateId}`, `POST /api/preview`, `POST /api/mapping/auto` |
 | Queue and logs | `GET /api/queue`, `GET /api/queue/stats`, `GET /api/queue/{id}`, `POST /api/queue/{id}/send`, `POST /api/queue/send`, `POST /api/queue/send-oldest`, `POST /api/queue/{id}/retry`, `POST /api/queue/retry`, `POST /api/queue/{id}/cancel`, `POST /api/queue/cancel`, `POST /api/queue/{id}/replay` |
@@ -72,13 +73,20 @@ Swagger has the request and response schemas for each.
 
 ## Examples
 
-Create a relay:
+Save a Discord webhook, then create a relay that uses it:
 
 ```sh
 curl -b cookies.txt -H 'Content-Type: application/json' \
-  -d '{"name":"CI","discordWebhookUrl":"https://discord.com/api/webhooks/…"}' \
+  -d '{"name":"#ci","url":"https://discord.com/api/webhooks/…"}' \
+  https://webhooks.example.com/api/discord-webhooks
+# → {"id":"<webhook-id>", …}
+
+curl -b cookies.txt -H 'Content-Type: application/json' \
+  -d '{"name":"CI","discordWebhookId":"<webhook-id>"}' \
   https://webhooks.example.com/api/relays
 ```
+
+Or pass `discordWebhookUrl` (and optionally `discordWebhookName`) instead of `discordWebhookId`. The URL is saved, or matched to one you already saved.
 
 Find failed deliveries from the last day that Discord rate-limited:
 

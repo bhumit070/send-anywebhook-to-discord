@@ -16,7 +16,7 @@ Start with the **Logs**: almost every problem shows up there with an exact error
 The service's requests aren't reaching a relay.
 
 - **Wrong or old URL.** Unknown keys get `404` and aren't logged. Copy the URL again from the relay page; it may have been rotated.
-- **Not reachable.** `localhost:8080` only works on your machine. Other services need a public URL; see [HTTPS and a public URL](deployment.md#https-and-a-public-url). Test with `curl` from another machine.
+- **Not reachable.** `localhost:5252` only works on your machine. Other services need a public URL; see [HTTPS and a public URL](deployment.md#https-and-a-public-url). Test with `curl` from another machine.
 - **Rate limited.** More than 120 requests a minute to one relay get `429` and aren't logged.
 
 ## Webhooks are "rejected"
@@ -43,7 +43,7 @@ The error says why:
 
 | Error | Meaning |
 |---|---|
-| *Discord 401/404 … relay disabled* | The Discord webhook was deleted, or the URL is wrong. The app disabled the relay. Paste a working URL under **Setup → Discord channel**, turn the relay on, then **Retry** |
+| *Discord 401/404 … relays using it were disabled* | The Discord webhook was deleted, or the URL is wrong. The app disabled every relay using that saved webhook. Fix the URL on the **Discord webhooks** page (**Edit**), turn the relays on, then **Retry** |
 | *Discord 400: Invalid Form Body {…}* | Discord refused the message. The JSON after it names the bad field. The app already drops invalid URLs and cuts long text, so this is rare; open the template and check the preview's warnings |
 | *Template "…": The message is empty for this payload* | Every part of the message rendered empty (often mapped fields that don't exist in this payload). Add a fallback (**If empty, show**) or static text |
 | *Template "…": embeds[0].title: …* | A Liquid syntax or render error in that slot |
@@ -70,9 +70,9 @@ After fixing a template, filter the logs by **dead**, select the rows and **Retr
 - **Logged out unexpectedly**: sessions last 30 days, and changing `APP_SECRET` ends all of them.
 - **Can't stay logged in over plain HTTP on a server**: if `PUBLIC_BASE_URL` starts with `https://`, the cookie is `Secure` and browsers won't send it over `http://`. Use the HTTPS address.
 
-## Relays show "https://discord.com/api/webhooks/…" with no ID
+## Saved webhooks show "https://discord.com/api/webhooks/…" with no ID
 
-`APP_SECRET` changed since the relay was created, so its Discord URL can't be decrypted. Restore the old secret, or paste the Discord URL again on the relay's **Setup** tab.
+`APP_SECRET` changed since the URL was saved, so it can't be decrypted. Restore the old secret, or paste the URL again on the **Discord webhooks** page (**Edit**).
 
 ## Startup errors
 

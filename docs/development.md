@@ -34,11 +34,11 @@ Then, in separate terminals:
 
 ```sh
 npm run db:up                      # Postgres in Docker, exposed on localhost:5432
-npm run dev -w @send-any-webhook/backend   # API + worker on :3000, restarts on changes
-npm run dev -w @send-any-webhook/frontend  # UI on http://localhost:5173 with hot reload
+npm run dev -w @send-any-webhook/backend   # API + worker on :5353, restarts on changes
+npm run dev -w @send-any-webhook/frontend  # UI on http://localhost:5252 with hot reload
 ```
 
-The Vite dev server forwards `/api`, `/h`, `/docs` and `/healthz` to `localhost:3000`, just like nginx does in Docker. Set `PUBLIC_BASE_URL=http://localhost:5173` so relay URLs point at the dev server.
+The Vite dev server forwards `/api`, `/h`, `/docs` and `/healthz` to `localhost:5353`, just like nginx does in Docker. Set `PUBLIC_BASE_URL=http://localhost:5252` so relay URLs point at the dev server.
 
 {: .note }
 Both `dev` scripts build `packages/shared` first. If you change code in `packages/shared` while they're running, rebuild it with `npm run build -w @send-any-webhook/shared`.
