@@ -2,6 +2,8 @@
 
 Relay webhooks from any service to a Discord channel, even services that only know how to POST JSON somewhere.
 
+📖 **Documentation: https://bhumit070.github.io/send-anywehook-to-discord/**
+
 1. Create a **relay**: a name plus the Discord channel's webhook URL. You get a URL like `https://your-host/h/vikunja_k3J9xQp2…`.
 2. Give it a **sample payload**: paste example JSON, paste a JSON Schema, or capture the next real webhook.
 3. **Map fields** onto a Discord message with the visual mapper (drag fields onto title, description, color, fields…) and watch a Discord-style preview update live. Or write Liquid templates directly.
@@ -41,7 +43,7 @@ See [`.env.example`](.env.example).
 - The worker picks the first template whose condition matches (lowest priority number first), renders it, applies Discord's limits (cutting text and dropping invalid URLs, with warnings), and posts it.
   - **2xx** → `delivered`
   - **429** → waits for Discord's `retry_after`; doesn't use up a retry
-  - **5xx / network error** → `failed`, retried after 10s, 1m, 5m, 30m, 2h, then `dead`
+  - **5xx / network error** → `failed`, retried after 10s, 1m, 5m, 30m; `dead` after 5 attempts
   - **401/404** (webhook deleted) → `dead`, and the relay is disabled
   - other **4xx** or a template error → `dead`
 - Every try is stored in `webhook_attempts`: what was sent, Discord's response, and the error with stack trace.
@@ -85,4 +87,12 @@ The preview in the browser and the worker use the same renderer from `packages/s
 
 ### Prebuilt images
 
-`.github/workflows/ci.yml` runs type-checks and tests (with Postgres), then pushes `ghcr.io/<owner>/send-any-webhook-backend` and `send-any-webhook-frontend` on pushes to `main` and `v*` tags. To use them instead of building, replace the `build:` sections in `docker-compose.yml` with `image: ghcr.io/<owner>/send-any-webhook-backend:latest` (and `-frontend`).
+`.github/workflows/ci.yml` runs type-checks and tests (with Postgres), then publishes `ghcr.io/bhumit070/send-any-webhook-backend` and `ghcr.io/bhumit070/send-any-webhook-frontend` on pushes to `master` and `v*` tags. [`docker-compose.ghcr.yml`](docker-compose.ghcr.yml) runs them without cloning or building. See [Deployment](https://bhumit070.github.io/send-anywehook-to-discord/deployment.html#prebuilt-images).
+
+### Documentation site
+
+`docs/` is a Jekyll site (Just the Docs theme) written in Markdown and published to GitHub Pages by `.github/workflows/docs.yml`.
+
+## License
+
+[MIT](LICENSE)
