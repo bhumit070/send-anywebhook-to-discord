@@ -30,6 +30,8 @@ The error says why:
 | *Empty body; a JSON body is required* | The service sent no body (some send a bodyless "ping" when you save the webhook; that's harmless) |
 | *Body larger than 1024 KB* | Payloads over 1 MB aren't accepted |
 | *Relay is disabled* | Turn the relay back on (and check why it was disabled; see below) |
+| *Authentication failed: Missing … header* / *Wrong token …* | The relay requires credentials and the request didn't have the right ones. Copy them again from the relay's **Setup → Security** (the **Try it with curl** command shows exactly what to send) |
+| *Authentication failed: Signature … does not match the body* | The HMAC secret, algorithm, encoding or prefix doesn't match what the service uses, or something changed the body on the way. Check the format preset (GitHub, Vikunja, …) and the shared secret |
 
 ## Webhooks are "skipped"
 
@@ -47,7 +49,7 @@ The error says why:
 | *Discord 400: Invalid Form Body {…}* | Discord refused the message. The JSON after it names the bad field. The app already drops invalid URLs and cuts long text, so this is rare; open the template and check the preview's warnings |
 | *Template "…": The message is empty for this payload* | Every part of the message rendered empty (often mapped fields that don't exist in this payload). Add a fallback (**If empty, show**) or static text |
 | *Template "…": embeds[0].title: …* | A Liquid syntax or render error in that slot |
-| *… (gave up after 5 attempts)* | Discord or the network failed 5 times in a row. **Retry** once it's fixed |
+| *… (gave up after N attempts)* | Discord or the network failed that many times in a row (the relay's **Delivery attempts** setting). **Retry** once it's fixed, or raise the setting on the Setup tab |
 | *Cancelled by user* | Someone cancelled it |
 
 After fixing a template, filter the logs by **dead**, select the rows and **Retry**. They're re-rendered with the current template.

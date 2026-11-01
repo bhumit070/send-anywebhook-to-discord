@@ -67,6 +67,6 @@ These aren't configurable:
 | Webhook body size | 1 MB |
 | Webhooks per relay | 120 per minute (then `429`) |
 | Login and sign-up attempts | 10 per minute per IP |
-| Delivery attempts | 5, with backoff of 10s, 1m, 5m, 30m |
+| Delivery attempts | Per relay, 1–20 (default 5), with backoff of 10s, 1m, 5m, 30m, then 2h |
 | Discord request timeout | 10 seconds |
 | Sessions | 30 days |

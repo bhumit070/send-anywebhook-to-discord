@@ -8,7 +8,7 @@ has_children: true
 
 How to use each part of the app:
 
-- [Relays](relays.md): incoming URLs, saved Discord webhooks, enabling and rotating keys
+- [Relays](relays.md): incoming URLs, saved Discord webhooks, security (credentials), delivery attempts
 - [Sample payloads](samples.md): example JSON, JSON Schema, live capture
 - [Mapping fields](mapping.md): the visual mapper and its preview
 - [Templates and conditions](templates.md): several templates per relay, and the Liquid reference

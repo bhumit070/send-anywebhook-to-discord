@@ -26,6 +26,7 @@ The body must be **JSON** (objects, arrays or any JSON value), at most **1 MB**.
 |---|---|---|
 | `202 {"id":"…","status":"queued"}` | Accepted and queued | yes (`pending`) |
 | `400` | Empty body, or invalid JSON sent as JSON | yes (`rejected`) |
+| `401` | The relay requires credentials and they're missing or wrong (see [Security](guides/relays.md#security)) | yes (`rejected`) |
 | `403` | The relay is disabled | yes (`rejected`) |
 | `404` | No relay has this key (wrong or rotated URL) | no |
 | `413` | Body larger than 1 MB | yes (`rejected`) |
@@ -65,7 +66,7 @@ In Swagger UI, log in through the `/api/auth/login` operation ("Try it out"). Th
 | System | `GET /healthz`, `GET /api/config` |
 | Auth | `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me` |
 | Discord webhooks | `GET/POST /api/discord-webhooks`, `PATCH/DELETE /api/discord-webhooks/{id}`, `POST /api/discord-webhooks/{id}/test` |
-| Relays | `GET/POST /api/relays`, `GET/PATCH/DELETE /api/relays/{id}`, `POST /api/relays/{id}/rotate-key`, `PUT /api/relays/{id}/sample`, `POST /api/relays/{id}/capture`, `POST /api/relays/{id}/test` |
+| Relays | `GET/POST /api/relays`, `GET/PATCH/DELETE /api/relays/{id}`, `POST /api/relays/{id}/rotate-key`, `POST /api/relays/{id}/auth/rotate`, `PUT /api/relays/{id}/sample`, `POST /api/relays/{id}/capture`, `POST /api/relays/{id}/test` |
 | Templates | `GET/POST /api/relays/{id}/templates`, `PATCH/DELETE /api/relays/{id}/templates/{templateId}`, `POST /api/preview`, `POST /api/mapping/auto` |
 | Queue and logs | `GET /api/queue`, `GET /api/queue/stats`, `GET /api/queue/{id}`, `POST /api/queue/{id}/send`, `POST /api/queue/send`, `POST /api/queue/send-oldest`, `POST /api/queue/{id}/retry`, `POST /api/queue/retry`, `POST /api/queue/{id}/cancel`, `POST /api/queue/cancel`, `POST /api/queue/{id}/replay` |
 
@@ -87,6 +88,8 @@ curl -b cookies.txt -H 'Content-Type: application/json' \
 ```
 
 Or pass `discordWebhookUrl` (and optionally `discordWebhookName`) instead of `discordWebhookId`. The URL is saved, or matched to one you already saved.
+
+Relays also take `maxAttempts` (1–20, default 5) and `auth`, for example `{"type":"token"}`, `{"type":"basic","username":"svc"}` or `{"type":"hmac","headerName":"X-Hub-Signature-256","prefix":"sha256=","secret":"…"}`. Omitted secrets are generated; `GET /api/relays/{id}` returns them to the owner (the list endpoint never does).
 
 Find failed deliveries from the last day that Discord rate-limited:
 

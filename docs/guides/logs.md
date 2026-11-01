@@ -34,7 +34,7 @@ The worker checks the queue every second and sends up to 10 webhooks at a time. 
 |---|---|
 | **2xx** | `delivered` |
 | **429** Too Many Requests | `failed`, retried after Discord's `retry_after`. **Doesn't use up an attempt.** |
-| **5xx**, timeout (10s) or network error | `failed`, retried after 10s, 1m, 5m, 30m; `dead` after 5 attempts |
+| **5xx**, timeout (10s) or network error | `failed`, retried after 10s, 1m, 5m, 30m, then every 2h; `dead` after the relay's **delivery attempts** (default 5, set on its Setup tab) |
 | **401 / 404** (webhook deleted or wrong) | `dead`, and the **relay is disabled** |
 | other **4xx** (e.g. 400 invalid body) | `dead`; retrying the same message won't help |
 | template error or empty message | `dead` (no request is sent) |
@@ -65,7 +65,7 @@ Click a row to open its details:
 | Action | Works on | What happens |
 |---|---|---|
 | **Send now** | pending, failed | Sends immediately, ahead of the queue, and shows the result |
-| **Retry** | dead, failed, skipped | Back to `pending` with a fresh set of 5 attempts, **using the current template** |
+| **Retry** | dead, failed, skipped | Back to `pending` with a fresh set of attempts (the relay's current setting), **using the current template** |
 | **Cancel** | pending, failed | Stops retrying (`dead`, "Cancelled by user") |
 | **Replay** | anything with a payload | Copies the webhook into a new queue entry and sends it now |
 | **Use as sample** | anything with a payload | Makes this payload the relay's sample |

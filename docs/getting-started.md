@@ -66,7 +66,12 @@ Click **New relay** and follow the three steps:
 
 ![The New relay form]({{ '/assets/images/new-relay.png' | relative_url }})
 
-1. **Name and Discord channel.** Enter a name (it also becomes part of the URL) and paste the webhook URL, giving it a name like `#dev-alerts`. The URL is saved, so next time you just pick it from the list. The app sends a test message to the channel so you know it works.
+1. **Name, Discord channel and security.**
+   - Enter a name (it also becomes part of the URL).
+   - Pick a Discord webhook from the dropdown. The first time, click **New webhook**, give it a name like `#dev-alerts` and paste its URL. It's saved to your list and selected automatically.
+   - Choose how the sending service must authenticate: a **secret header** (the default), **username + password**, an **HMAC signature**, or **URL only**. See [Security](guides/relays.md#security).
+
+   The app sends a test message to the channel so you know it works.
 2. **Sample payload.** Show the app what the other service sends. Choose one:
    - **Paste JSON**: an example from the service's docs.
    - **JSON Schema**: the app generates an example from the schema.
@@ -77,12 +82,18 @@ Click **New relay** and follow the three steps:
 
 ## 5. Point the service at the relay
 
-Copy the relay's URL from its page and paste it wherever the other service asks for a webhook URL. Try it from a terminal first:
+Copy the relay's URL from its page and paste it wherever the other service asks for a webhook URL, along with the credentials shown under **Security**.
+
+To try it first, open **Try it with curl** on the relay's Setup tab (it's already open right after you create a relay). It's a ready-to-paste command that sends your **sample payload** with the right credentials, for example:
 
 ```sh
 curl -X POST 'http://localhost:5252/h/<your-relay-key>' \
   -H 'Content-Type: application/json' \
-  -d '{"event":"test","message":"Hello from curl"}'
+  -H 'Authorization: Bearer <your-token>' \
+  --data-binary '{
+  "event": "task.created",
+  "title": "Fix login bug"
+}'
 ```
 
 You should get `202` back and see the message in Discord within a second or two. If not, open the relay's **Logs** tab: each webhook shows its status and the exact error. Also see [Troubleshooting](troubleshooting.md).
