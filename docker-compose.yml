@@ -25,13 +25,16 @@ services:
     environment:
       DATABASE_URL: postgres://send_any_webhook:${POSTGRES_PASSWORD}@postgres:5432/send_any_webhook
       APP_SECRET: ${APP_SECRET:?set APP_SECRET in .env (openssl rand -hex 32)}
-      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:5252}
       AUTH_DISABLED: ${AUTH_DISABLED:-false}
       ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-true}
       EVENT_RETENTION_DAYS: ${EVENT_RETENTION_DAYS:-14}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       RUN_WORKER: ${RUN_WORKER:-true}
       TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-1}
+    ports:
+      # Direct API access from this machine only; everything public goes through the frontend
+      - "127.0.0.1:${BACKEND_PORT:-5353}:5353"
     depends_on:
       postgres:
         condition: service_healthy
@@ -43,7 +46,7 @@ services:
     image: send-any-webhook-frontend
     restart: unless-stopped
     ports:
-      - "${PORT:-8080}:80"
+      - "${PORT:-5252}:80"
     depends_on:
       backend:
         condition: service_healthy

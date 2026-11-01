@@ -3,7 +3,7 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
-const backend = process.env.BACKEND_URL ?? 'http://localhost:3000';
+const backend = process.env.BACKEND_URL ?? 'http://localhost:5353';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -11,7 +11,7 @@ export default defineConfig({
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
   server: {
-    port: 5173,
+    port: 5252,
     // Same paths nginx proxies in production
     proxy: {
       '/api': backend,

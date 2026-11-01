@@ -21,12 +21,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
 
   return {
     host: env.HOST || '0.0.0.0',
-    port: int('BACKEND_PORT', env.BACKEND_PORT, 3000),
+    port: int('BACKEND_PORT', env.BACKEND_PORT, 5353),
     logLevel: env.LOG_LEVEL || 'info',
     prettyLogs: bool(env.PRETTY_LOGS, false),
     databaseUrl: required('DATABASE_URL', env.DATABASE_URL),
     appSecret,
-    publicBaseUrl: (env.PUBLIC_BASE_URL || 'http://localhost:8080').replace(/\/+$/, ''),
+    publicBaseUrl: (env.PUBLIC_BASE_URL || 'http://localhost:5252').replace(/\/+$/, ''),
     authDisabled: bool(env.AUTH_DISABLED, false),
     allowRegistration: bool(env.ALLOW_REGISTRATION, true),
     eventRetentionDays: int('EVENT_RETENTION_DAYS', env.EVENT_RETENTION_DAYS, 14),

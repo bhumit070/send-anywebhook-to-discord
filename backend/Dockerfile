@@ -34,8 +34,8 @@ COPY --from=build /app/backend/dist backend/dist
 
 USER node
 WORKDIR /app/backend
-EXPOSE 3000
+EXPOSE 5353
 HEALTHCHECK --interval=10s --timeout=3s --start-period=20s --retries=3 \
-  CMD wget -qO- http://127.0.0.1:3000/healthz >/dev/null || exit 1
+  CMD wget -qO- http://127.0.0.1:5353/healthz >/dev/null || exit 1
 # Applies pending migrations, then starts the API
 CMD ["node", "dist/server.js"]
