@@ -107,7 +107,7 @@ export function SampleEditor({ relay, onSaved }: { relay: RelayDetail; onSaved?:
 
       <TabsContent value="schema" className="space-y-3">
         <p className="text-muted-foreground text-sm">
-          Paste the payload's JSON Schema; Send Any Webhook to Discord builds an example from it using <code>examples</code>, <code>default</code> and{' '}
+          Paste the payload's JSON Schema; the app builds an example from it using <code>examples</code>, <code>default</code> and{' '}
           <code>enum</code> where present. Only local <code>$ref</code>s are followed.
         </p>
         <JsonEditor value={schema} onChange={setSchema} minHeight="220px" />

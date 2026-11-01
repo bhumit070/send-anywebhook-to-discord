@@ -74,7 +74,7 @@ export function AppLayout() {
             <span className="bg-primary text-primary-foreground grid size-7 place-items-center rounded-md">
               <Webhook className="size-4" />
             </span>
-            Send Any Webhook to Discord
+            <span className="hidden sm:inline">Send Any Webhook to Discord</span>
           </NavLink>
           <nav className="flex items-center gap-1">
             <NavItem to="/" icon={<Webhook />}>

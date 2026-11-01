@@ -1,5 +1,5 @@
 {
-  "name": "send-any-webhook",
+  "name": "send-any-webhook-to-discord",
   "private": true,
   "type": "module",
   "workspaces": [
