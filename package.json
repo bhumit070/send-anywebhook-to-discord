@@ -1,0 +1,19 @@
+{
+  "name": "send-any-webhook",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/shared",
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "build": "npm run build -w @send-any-webhook/shared && npm run build -w @send-any-webhook/backend && npm run build -w @send-any-webhook/frontend",
+    "typecheck": "npm run build -w @send-any-webhook/shared && npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "db:up": "docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d postgres"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}
