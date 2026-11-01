@@ -14,6 +14,8 @@ const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
 
 export function discordTime(unix: number, style = 'f'): string {
   const date = new Date(unix * 1000);
+  // Out-of-range timestamps would make Intl throw and crash the preview
+  if (!Number.isFinite(date.getTime())) return `<t:${unix}:${style}>`;
   if (style === 'R') {
     const s = (date.getTime() - Date.now()) / 1000;
     const units: [Intl.RelativeTimeFormatUnit, number][] = [

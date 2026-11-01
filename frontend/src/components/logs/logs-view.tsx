@@ -122,7 +122,14 @@ export function LogsView({ fixedRelayId }: { fixedRelayId?: string }) {
   const bulk = useMutation({
     mutationFn: async (kind: 'send' | 'retry' | 'cancel' | 'oldest') => {
       const ids = [...selected];
-      if (kind === 'send') return unwrap(api.POST('/api/queue/send', { body: { ids: ids.slice(0, 50) } }));
+      if (kind === 'send') {
+        // The API sends at most 50 per request
+        const results = [];
+        for (let i = 0; i < ids.length; i += 50) {
+          results.push(...(await unwrap(api.POST('/api/queue/send', { body: { ids: ids.slice(i, i + 50) } }))).results);
+        }
+        return { results };
+      }
       if (kind === 'retry') return unwrap(api.POST('/api/queue/retry', { body: { ids } }));
       if (kind === 'cancel') return unwrap(api.POST('/api/queue/cancel', { body: { ids } }));
       return unwrap(
@@ -145,6 +152,11 @@ export function LogsView({ fixedRelayId }: { fixedRelayId?: string }) {
   const items = list.data?.items ?? [];
   const total = list.data?.total ?? 0;
   const pages = Math.max(1, Math.ceil(total / pageSize));
+
+  // Live refresh or retention can shrink the list below the current page
+  useEffect(() => {
+    if (list.data && page > pages) update({ page: String(pages) }, false);
+  });
   const allSelected = items.length > 0 && items.every((i) => selected.has(i.id));
   const activeFilters = FILTER_KEYS.filter((k) => (k === 'relayId' && fixedRelayId ? false : params.has(k))).length;
   const waiting = (stats.data?.counts.pending ?? 0) + (stats.data?.counts.failed ?? 0);
@@ -320,7 +332,7 @@ export function LogsView({ fixedRelayId }: { fixedRelayId?: string }) {
       {selected.size > 0 && (
         <div className="bg-muted/50 flex flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-sm">
           <span className="font-medium">{selected.size} selected</span>
-          <Button size="sm" onClick={() => bulk.mutate('send')} disabled={bulk.isPending} title="Pending/failed only, max 50">
+          <Button size="sm" onClick={() => bulk.mutate('send')} disabled={bulk.isPending} title="Pending/failed only">
             <Send /> Send now
           </Button>
           <Button size="sm" variant="outline" onClick={() => bulk.mutate('retry')} disabled={bulk.isPending} title="Dead/failed/skipped only">
