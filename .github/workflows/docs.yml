@@ -12,12 +12,12 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
+# Deploys queue one after another; PR builds get their own group so they can't
+# replace a deploy that is waiting its turn.
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: ${{ github.event_name == 'pull_request' && format('docs-pr-{0}', github.ref) || 'pages' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
@@ -25,6 +25,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+        # Only needed for deploys; it fails where Pages isn't enabled (forks)
+        if: github.event_name != 'pull_request'
       - uses: actions/jekyll-build-pages@v1
         with:
           source: ./docs
@@ -35,6 +37,9 @@ jobs:
     needs: build
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
