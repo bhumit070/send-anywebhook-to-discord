@@ -76,7 +76,8 @@ describe.skipIf(!TEST_DB)('integration (Postgres)', () => {
       const relay = res.json();
       expect(relay.ingestKey).toMatch(/^vikunja-tasks_[A-Za-z0-9]{24}$/);
       expect(relay.ingestUrl).toBe(`http://send-any-webhook.test/h/${relay.ingestKey}`);
-      expect(relay.discordWebhookUrl).toBe('https://discord.com/api/webhooks/123456789/test…_ABC');
+      // (this URL was saved by earlier relays, so the existing saved webhook is reused)
+      expect(relay.discordWebhook.url).toBe('https://discord.com/api/webhooks/123456789/test…_ABC');
       expect(JSON.stringify(relay)).not.toContain('test-token');
 
       const rotated = (await api('POST', `/api/relays/${relay.id}/rotate-key`)).json();
@@ -306,6 +307,67 @@ describe.skipIf(!TEST_DB)('integration (Postgres)', () => {
 
       const retryByFilter = (await api('POST', '/api/queue/retry', { filter: { relayId: [relay.id], status: ['delivered'] } })).json();
       expect(retryByFilter).toEqual({ affected: 0 }); // delivered rows are not retryable
+    });
+  });
+
+  describe('saved Discord webhooks', () => {
+    const OTHER = 'https://discord.com/api/webhooks/987654321/other-token';
+
+    it('reuses one saved webhook across relays and matches pasted URLs', async () => {
+      const as = (await login(ctx.app)).cookie;
+      const saved = (await api('POST', '/api/discord-webhooks', { name: '#alerts', url: OTHER }, as)).json();
+      expect(saved).toMatchObject({ name: '#alerts', url: 'https://discord.com/api/webhooks/987654321/othe…oken', relays: [] });
+      expect(JSON.stringify(saved)).not.toContain('other-token');
+      expect((await api('POST', '/api/discord-webhooks', { name: 'dup', url: OTHER }, as)).statusCode).toBe(409);
+
+      const a = (await api('POST', '/api/relays', { name: 'A', discordWebhookId: saved.id }, as)).json();
+      // pasting a URL that is already saved reuses it instead of creating a duplicate
+      const b = (await api('POST', '/api/relays', { name: 'B', discordWebhookUrl: OTHER }, as)).json();
+      expect(a.discordWebhook.id).toBe(saved.id);
+      expect(b.discordWebhook).toMatchObject({ id: saved.id, name: '#alerts' });
+      // a new URL is saved under the given name
+      const c = (await api('POST', '/api/relays', { name: 'C', discordWebhookUrl: WEBHOOK, discordWebhookName: '#ci' }, as)).json();
+      const list = (await api('GET', '/api/discord-webhooks', undefined, as)).json();
+      expect(list.map((w: { name: string; relays: { name: string }[] }) => [w.name, w.relays.map((r) => r.name)])).toEqual([
+        ['#alerts', ['A', 'B']],
+        ['#ci', ['C']],
+      ]);
+
+      // in use → can't delete; move the relay, then delete works
+      expect((await api('DELETE', `/api/discord-webhooks/${list[1].id}`, undefined, as)).statusCode).toBe(409);
+      const moved = (await api('PATCH', `/api/relays/${c.id}`, { discordWebhookId: saved.id }, as)).json();
+      expect(moved.discordWebhook.id).toBe(saved.id);
+      expect((await api('DELETE', `/api/discord-webhooks/${list[1].id}`, undefined, as)).statusCode).toBe(200);
+
+      // replacing the URL changes where every relay using it sends
+      await api('PATCH', `/api/discord-webhooks/${saved.id}`, { url: WEBHOOK }, as);
+      expect((await api('POST', `/api/discord-webhooks/${saved.id}/test`, undefined, as)).json()).toMatchObject({ ok: true });
+      expect(ctx.discord.calls.at(-1)?.url).toBe(WEBHOOK);
+    });
+
+    it('rejects bad input and other users\' webhooks', async () => {
+      const as = (await login(ctx.app)).cookie;
+      const saved = (await api('POST', '/api/discord-webhooks', { name: 'mine', url: OTHER }, as)).json();
+      expect((await api('POST', '/api/relays', { name: 'x', discordWebhookId: saved.id })).statusCode).toBe(400);
+      expect((await api('GET', '/api/discord-webhooks')).json().some((w: { id: string }) => w.id === saved.id)).toBe(false);
+      expect((await api('POST', '/api/relays', { name: 'x' }, as)).json().message).toMatch(/Choose a saved Discord webhook/);
+      expect((await api('POST', '/api/discord-webhooks', { name: 'bad', url: 'https://example.com/x' }, as)).statusCode).toBe(400);
+    });
+
+    it('disables every relay using a webhook that Discord says is gone', async () => {
+      const as = (await login(ctx.app)).cookie;
+      await ctx.db.update(webhookQueue).set({ status: 'dead' }).where(sql`${webhookQueue.status} in ('pending','failed')`);
+      const saved = (await api('POST', '/api/discord-webhooks', { name: 'shared', url: OTHER }, as)).json();
+      const r1 = (await api('POST', '/api/relays', { name: 'R1', discordWebhookId: saved.id }, as)).json();
+      const r2 = (await api('POST', '/api/relays', { name: 'R2', discordWebhookId: saved.id }, as)).json();
+      await api('POST', `/api/relays/${r1.id}/templates`, { name: 'T', mode: 'liquid', message: { content: 'hi' } }, as);
+      await ingest(r1.ingestKey, '{}');
+      ctx.discord.queue.push({ status: 404, headers: {}, body: '{"message":"Unknown Webhook"}' });
+      await ctx.worker.tick();
+      expect(ctx.discord.calls.at(-1)?.url).toBe(OTHER);
+      const enabled = await ctx.db.select({ id: relays.id, enabled: relays.enabled }).from(relays).where(eq(relays.discordWebhookId, saved.id));
+      expect(enabled.map((r) => r.enabled)).toEqual([false, false]);
+      expect([r1.id, r2.id].sort()).toEqual(enabled.map((r) => r.id).sort());
     });
   });
 

@@ -1,7 +1,6 @@
 import {
   compileMapping,
   extractPaths,
-  isDiscordWebhookUrl,
   renderMessage,
   sampleFromSchema,
   type Mapping as MappingT,
@@ -12,9 +11,9 @@ import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm';
 import { Type } from 'typebox';
 import type { Config } from '../config.js';
 import type { Db } from '../db/client.js';
-import { relays, templates, webhookQueue } from '../db/schema.js';
-import { deriveKey, encrypt, randomToken } from '../lib/crypto.js';
-import { maskWebhookUrl } from '../lib/discord.js';
+import { discordWebhooks, relays, templates, webhookQueue } from '../db/schema.js';
+import { randomToken } from '../lib/crypto.js';
+import type { DiscordWebhookStore } from '../services/discord-webhooks.js';
 import {
   ErrorResponse,
   IdParams,
@@ -30,10 +29,14 @@ import type { RouteDeps } from './types.js';
 const tags = ['relays'];
 const security = [{ session: [] }];
 const notFound = { statusCode: 404, error: 'Not Found', message: 'Relay not found' };
-const badWebhook = {
-  statusCode: 400,
-  error: 'Bad Request',
-  message: 'Not a Discord webhook URL. Copy it from Channel settings → Integrations → Webhooks.',
+const bad = (message: string) => ({ statusCode: 400, error: 'Bad Request', message });
+
+const WebhookChoice = {
+  discordWebhookId: Type.Optional(Type.String({ format: 'uuid', description: 'A saved Discord webhook' })),
+  discordWebhookUrl: Type.Optional(
+    Type.String({ maxLength: 500, description: 'Or a Discord webhook URL; it is saved for reuse (or matched to an existing saved one)' }),
+  ),
+  discordWebhookName: Type.Optional(Type.String({ maxLength: 100, description: 'Name for a newly saved URL (default: the relay name)' })),
 };
 
 export function slugify(name: string): string {
@@ -52,7 +55,7 @@ export const newIngestKey = (name: string) => `${slugify(name)}_${randomToken(24
 type RelayRow = typeof relays.$inferSelect;
 
 /** Loads list/summary fields for relays, including their latest activity. */
-export async function serializeRelays(db: Db, config: Config, rows: RelayRow[], decryptUrl: (enc: string) => string) {
+export async function serializeRelays(db: Db, config: Config, rows: RelayRow[], webhooks: DiscordWebhookStore) {
   if (!rows.length) return [];
   const ids = rows.map((r) => r.id);
   const stats = await db
@@ -74,21 +77,24 @@ export async function serializeRelays(db: Db, config: Config, rows: RelayRow[], 
     .from(templates)
     .where(inArray(templates.relayId, ids))
     .groupBy(templates.relayId);
+  const saved = await db
+    .select()
+    .from(discordWebhooks)
+    .where(inArray(discordWebhooks.id, [...new Set(rows.map((r) => r.discordWebhookId))]));
 
   return rows.map((r) => {
     const s = stats.find((x) => x.relayId === r.id);
-    let webhook = 'https://discord.com/api/webhooks/…';
-    try {
-      webhook = maskWebhookUrl(decryptUrl(r.discordWebhookUrlEnc));
-    } catch {
-      // APP_SECRET changed; the relay needs its webhook URL re-entered
-    }
+    const webhook = saved.find((w) => w.id === r.discordWebhookId);
     return {
       id: r.id,
       name: r.name,
       ingestKey: r.ingestKey,
       ingestUrl: `${config.publicBaseUrl}/h/${r.ingestKey}`,
-      discordWebhookUrl: webhook,
+      discordWebhook: {
+        id: r.discordWebhookId,
+        name: webhook?.name ?? '',
+        url: webhook ? webhooks.masked(webhook.urlEnc) : 'https://discord.com/api/webhooks/…',
+      },
       enabled: r.enabled,
       captureMode: r.captureMode,
       sampleSource: r.sampleSource,
@@ -103,16 +109,13 @@ export async function serializeRelays(db: Db, config: Config, rows: RelayRow[], 
   });
 }
 
-export const relayRoutes: FastifyPluginAsyncTypebox<RouteDeps> = async (app, { config, db, delivery, send }) => {
-  const key = deriveKey(config.appSecret, 'webhook-url');
-  const decryptUrl = (enc: string) => delivery.decryptWebhookUrl(enc);
-
+export const relayRoutes: FastifyPluginAsyncTypebox<RouteDeps> = async (app, { config, db, delivery, send, webhooks }) => {
   const owned = async (id: string, userId: string) => {
     const [row] = await db.select().from(relays).where(and(eq(relays.id, id), eq(relays.userId, userId)));
     return row;
   };
   const detail = async (row: RelayRow) => ({
-    ...(await serializeRelays(db, config, [row], decryptUrl))[0]!,
+    ...(await serializeRelays(db, config, [row], webhooks))[0]!,
     samplePayload: row.samplePayload,
   });
 
@@ -121,7 +124,7 @@ export const relayRoutes: FastifyPluginAsyncTypebox<RouteDeps> = async (app, { c
     { schema: { tags, security, summary: 'List relays', response: { 200: Type.Array(Relay) } } },
     async (req) => {
       const rows = await db.select().from(relays).where(eq(relays.userId, req.userId)).orderBy(asc(relays.name));
-      return serializeRelays(db, config, rows, decryptUrl);
+      return serializeRelays(db, config, rows, webhooks);
     },
   );
 
@@ -132,17 +135,19 @@ export const relayRoutes: FastifyPluginAsyncTypebox<RouteDeps> = async (app, { c
         tags,
         security,
         summary: 'Create a relay',
+        description: 'Send either `discordWebhookId` (a saved webhook) or `discordWebhookUrl`.',
         body: Type.Object({
           name: Type.String({ minLength: 1, maxLength: 100 }),
-          discordWebhookUrl: Type.String({ maxLength: 500 }),
+          ...WebhookChoice,
           enabled: Type.Optional(Type.Boolean()),
         }),
         response: { 201: RelayDetail, 400: ErrorResponse },
       },
     },
     async (req, reply) => {
-      const { name, discordWebhookUrl, enabled } = req.body;
-      if (!isDiscordWebhookUrl(discordWebhookUrl)) return reply.code(400).send(badWebhook);
+      const { name, enabled } = req.body;
+      const webhook = await webhooks.resolve(req.userId, req.body, name.trim());
+      if ('error' in webhook) return reply.code(400).send(bad(webhook.error));
       const [row] = await db
         .insert(relays)
         .values({
@@ -150,7 +155,7 @@ export const relayRoutes: FastifyPluginAsyncTypebox<RouteDeps> = async (app, { c
           name: name.trim(),
           slug: slugify(name),
           ingestKey: newIngestKey(name),
-          discordWebhookUrlEnc: encrypt(key, discordWebhookUrl.trim()),
+          discordWebhookId: webhook.id,
           enabled: enabled ?? true,
         })
         .returning();
@@ -177,21 +182,27 @@ export const relayRoutes: FastifyPluginAsyncTypebox<RouteDeps> = async (app, { c
         params: IdParams,
         body: Type.Object({
           name: Type.Optional(Type.String({ minLength: 1, maxLength: 100 })),
-          discordWebhookUrl: Type.Optional(Type.String({ maxLength: 500 })),
+          ...WebhookChoice,
           enabled: Type.Optional(Type.Boolean()),
         }),
         response: { 200: RelayDetail, 400: ErrorResponse, 404: ErrorResponse },
       },
     },
     async (req, reply) => {
-      if (!(await owned(req.params.id, req.userId))) return reply.code(404).send(notFound);
-      const { name, discordWebhookUrl, enabled } = req.body;
-      if (discordWebhookUrl !== undefined && !isDiscordWebhookUrl(discordWebhookUrl)) return reply.code(400).send(badWebhook);
+      const current = await owned(req.params.id, req.userId);
+      if (!current) return reply.code(404).send(notFound);
+      const { name, enabled } = req.body;
+      let discordWebhookId: string | undefined;
+      if (req.body.discordWebhookId || req.body.discordWebhookUrl) {
+        const webhook = await webhooks.resolve(req.userId, req.body, name?.trim() || current.name);
+        if ('error' in webhook) return reply.code(400).send(bad(webhook.error));
+        discordWebhookId = webhook.id;
+      }
       const [row] = await db
         .update(relays)
         .set({
           ...(name !== undefined && { name: name.trim(), slug: slugify(name) }),
-          ...(discordWebhookUrl !== undefined && { discordWebhookUrlEnc: encrypt(key, discordWebhookUrl.trim()) }),
+          ...(discordWebhookId && { discordWebhookId }),
           ...(enabled !== undefined && { enabled }),
         })
         .where(eq(relays.id, req.params.id))
@@ -359,7 +370,9 @@ export const relayRoutes: FastifyPluginAsyncTypebox<RouteDeps> = async (app, { c
       }
       if (!render.message) return { ok: false, status: null, error: render.error, render };
       try {
-        const res = await send(decryptUrl(relay.discordWebhookUrlEnc), render.message);
+        const saved = await webhooks.owned(req.userId, relay.discordWebhookId);
+        if (!saved) return { ok: false, status: null, error: 'The relay\'s saved Discord webhook no longer exists', render };
+        const res = await send(webhooks.decrypt(saved.urlEnc), render.message);
         const ok = res.status >= 200 && res.status < 300;
         return { ok, status: res.status, error: ok ? null : `Discord ${res.status}: ${res.body.slice(0, 500)}`, render };
       } catch (err) {

@@ -115,7 +115,11 @@ export const Relay = Type.Object({
   name: Type.String(),
   ingestKey: Type.String(),
   ingestUrl: Type.String(),
-  discordWebhookUrl: Type.String({ description: 'Masked; the token is never returned' }),
+  discordWebhook: Type.Object({
+    id: Uuid,
+    name: Type.String(),
+    url: Type.String({ description: 'Masked; the token is never returned' }),
+  }),
   enabled: Type.Boolean(),
   captureMode: Type.Boolean(),
   sampleSource: Type.Union([Type.Null(), Type.Literal('example'), Type.Literal('schema'), Type.Literal('captured')]),

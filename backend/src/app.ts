@@ -9,11 +9,13 @@ import type { Db } from './db/client.js';
 import { sendToDiscord, type DiscordSender } from './lib/discord.js';
 import auth, { SESSION_COOKIE } from './plugins/auth.js';
 import { authRoutes } from './routes/auth.js';
+import { discordWebhookRoutes } from './routes/discord-webhooks.js';
 import { ingestRoutes, INGEST_BODY_LIMIT } from './routes/ingest.js';
 import { queueRoutes } from './routes/queue.js';
 import { relayRoutes } from './routes/relays.js';
 import { previewRoutes, templateRoutes } from './routes/templates.js';
 import { Delivery } from './services/delivery.js';
+import { DiscordWebhookStore } from './services/discord-webhooks.js';
 
 export interface AppDeps {
   config: Config;
@@ -56,6 +58,7 @@ export async function buildApp(deps: AppDeps, opts: FastifyServerOptions = {}) {
         { name: 'ingest', description: 'Where other services send their webhooks' },
         { name: 'auth', description: 'Accounts and sessions' },
         { name: 'relays', description: 'Incoming URL → Discord channel' },
+        { name: 'discord-webhooks', description: 'Saved Discord webhook URLs, reusable across relays' },
         { name: 'templates', description: 'How a payload becomes a Discord message' },
         { name: 'queue', description: 'Delivery queue and webhook logs' },
         { name: 'system', description: 'Health and instance configuration' },
@@ -115,13 +118,14 @@ export async function buildApp(deps: AppDeps, opts: FastifyServerOptions = {}) {
     }),
   );
 
-  const routeDeps = { config, db, delivery, send };
+  const routeDeps = { config, db, delivery, send, webhooks: new DiscordWebhookStore(db, config) };
   await app.register(ingestRoutes, routeDeps);
   await app.register(authRoutes, { ...routeDeps, prefix: '/api/auth' });
   await app.register(
     async (api) => {
       api.addHook('preHandler', api.requireUser);
       await api.register(relayRoutes, { ...routeDeps, prefix: '/relays' });
+      await api.register(discordWebhookRoutes, { ...routeDeps, prefix: '/discord-webhooks' });
       await api.register(templateRoutes, { ...routeDeps, prefix: '/relays' });
       await api.register(previewRoutes, routeDeps);
       await api.register(queueRoutes, { ...routeDeps, prefix: '/queue' });

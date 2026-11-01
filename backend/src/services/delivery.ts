@@ -3,7 +3,7 @@ import { and, asc, count, eq, inArray, sql } from 'drizzle-orm';
 import type { FastifyBaseLogger } from 'fastify';
 import type { Config } from '../config.js';
 import type { Db } from '../db/client.js';
-import { relays, templates, webhookAttempts, webhookQueue } from '../db/schema.js';
+import { discordWebhooks, relays, templates, webhookAttempts, webhookQueue } from '../db/schema.js';
 import { decrypt, deriveKey } from '../lib/crypto.js';
 import type { DiscordResponse, DiscordSender } from '../lib/discord.js';
 import type { QueueStatusT } from '../schemas.js';
@@ -185,9 +185,11 @@ export class Delivery {
     this.lastSend.set(relay.id, Date.now());
 
     const base = { templateId: chosen.id, rendered: rendered.message };
+    const [webhook] = await this.db.select().from(discordWebhooks).where(eq(discordWebhooks.id, relay.discordWebhookId));
     let res: DiscordResponse;
     try {
-      res = await this.send(this.decryptWebhookUrl(relay.discordWebhookUrlEnc), rendered.message);
+      if (!webhook) throw new Error('The relay\'s saved Discord webhook no longer exists');
+      res = await this.send(this.decryptWebhookUrl(webhook.urlEnc), rendered.message);
     } catch (err) {
       const { message, stack } = describeError(err);
       await recordAttempt({ requestBody: rendered.message, errorMessage: message, errorStack: stack });
@@ -224,13 +226,14 @@ export class Delivery {
     }
     if (res.status >= 500) return this.retryOrDie(id, row, base, discordError(res), res.status);
     if (res.status === 401 || res.status === 404) {
-      await this.db.update(relays).set({ enabled: false }).where(eq(relays.id, relay.id));
-      this.log.warn({ relayId: relay.id, status: res.status }, 'Discord webhook is gone; relay disabled');
+      // Every relay sending to this saved webhook would fail the same way
+      await this.db.update(relays).set({ enabled: false }).where(eq(relays.discordWebhookId, relay.discordWebhookId));
+      this.log.warn({ relayId: relay.id, webhookId: relay.discordWebhookId, status: res.status }, 'Discord webhook is gone; relays disabled');
       return this.finish(id, {
         ...base,
         status: 'dead',
         attempts: row.attempts + 1,
-        lastError: `${discordError(res)} (the Discord webhook was deleted or its URL is wrong; relay disabled)`,
+        lastError: `${discordError(res)} (the Discord webhook “${webhook!.name}” was deleted or its URL is wrong; relays using it were disabled)`,
         lastStatusCode: res.status,
       });
     }
