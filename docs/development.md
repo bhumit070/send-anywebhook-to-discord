@@ -17,8 +17,8 @@ nav_order: 7
 ## Running from source
 
 ```sh
-git clone https://github.com/bhumit070/send-anywehook-to-discord.git send-any-webhook
-cd send-any-webhook
+git clone https://github.com/bhumit070/send-anywebhook-to-discord.git
+cd send-anywebhook-to-discord
 npm install
 cp .env.example .env
 ```
@@ -26,7 +26,7 @@ cp .env.example .env
 In `.env`, set `APP_SECRET` and `POSTGRES_PASSWORD`, and uncomment `DATABASE_URL` with the same password:
 
 ```sh
-DATABASE_URL=postgres://send-any-webhook:<POSTGRES_PASSWORD>@localhost:5432/send-any-webhook
+DATABASE_URL=postgres://send_any_webhook:<POSTGRES_PASSWORD>@localhost:5432/send_any_webhook
 PRETTY_LOGS=true
 ```
 
@@ -74,8 +74,8 @@ npm run build       # production builds
 Backend **integration tests** need a Postgres database they can wipe. They're skipped unless `TEST_DATABASE_URL` is set:
 
 ```sh
-docker compose exec postgres psql -U send-any-webhook -c 'create database send_any_webhook_test'
-TEST_DATABASE_URL=postgres://send-any-webhook:<password>@localhost:5432/send_any_webhook_test npm test
+docker compose exec postgres psql -U send_any_webhook -c 'create database send_any_webhook_test'
+TEST_DATABASE_URL=postgres://send_any_webhook:<password>@localhost:5432/send_any_webhook_test npm test
 ```
 
 {: .warning }
@@ -120,8 +120,8 @@ Preview it locally with the same image GitHub uses:
 docker run --rm -v "$PWD/docs:/src" -v "$PWD/_site:/out" \
   -e INPUT_SOURCE=/src -e INPUT_DESTINATION=/out \
   ghcr.io/actions/jekyll-build-pages:v1.0.13
-npx serve _site   # then open the printed URL + /send-anywehook-to-discord/
+npx serve _site   # then open the printed URL + /send-anywebhook-to-discord/
 ```
 
 {: .note }
-Jekyll treats double curly braces as its own Liquid. Wrap examples of Send Any Webhook to Discord templates in a Liquid `raw` … `endraw` block so they show up as written (see `docs/guides/templates.md`).
+Jekyll treats double curly braces as its own Liquid. Wrap examples of message templates in a Liquid `raw` … `endraw` block so they show up as written (see `docs/guides/templates.md`).

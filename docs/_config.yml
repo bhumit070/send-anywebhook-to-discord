@@ -1,7 +1,7 @@
 title: Send Any Webhook to Discord
 description: Relay any webhook to a Discord channel, with a visual field mapper and full delivery logs.
 url: https://bhumit070.github.io
-baseurl: /send-anywehook-to-discord
+baseurl: /send-anywebhook-to-discord
 
 remote_theme: just-the-docs/just-the-docs@v0.10.1
 plugins:
@@ -15,12 +15,12 @@ back_to_top: true
 back_to_top_text: Back to top
 
 aux_links:
-  GitHub: https://github.com/bhumit070/send-anywehook-to-discord
+  GitHub: https://github.com/bhumit070/send-anywebhook-to-discord
 aux_links_new_tab: true
 
 gh_edit_link: true
 gh_edit_link_text: Edit this page on GitHub
-gh_edit_repository: https://github.com/bhumit070/send-anywehook-to-discord
+gh_edit_repository: https://github.com/bhumit070/send-anywebhook-to-discord
 gh_edit_branch: master
 gh_edit_source: docs
 gh_edit_view_mode: edit

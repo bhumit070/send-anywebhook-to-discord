@@ -6,7 +6,7 @@ nav_order: 3
 # Configuration
 {: .no_toc }
 
-All settings are environment variables. With Docker Compose they're read from `.env` next to `docker-compose.yml`. Copy [`.env.example`](https://github.com/bhumit070/send-anywehook-to-discord/blob/master/.env.example) to start.
+All settings are environment variables. With Docker Compose they're read from `.env` next to `docker-compose.yml`. Copy [`.env.example`](https://github.com/bhumit070/send-anywebhook-to-discord/blob/master/.env.example) to start.
 
 1. TOC
 {:toc}
@@ -19,14 +19,14 @@ All settings are environment variables. With Docker Compose they're read from `.
 | `POSTGRES_PASSWORD` | Password for the bundled Postgres. Compose uses it for both the database and the backend's `DATABASE_URL`. |
 
 {: .warning }
-Changing `APP_SECRET` logs everyone out. Send Any Webhook to Discord can then no longer decrypt stored Discord webhook URLs, so you'd need to paste each relay's URL again under **Setup → Discord channel → Replace**. Keep it safe and keep it stable.
+Changing `APP_SECRET` logs everyone out. The app can then no longer decrypt stored Discord webhook URLs, so you'd need to paste each relay's URL again under **Setup → Discord channel → Replace**. Keep it safe and keep it stable.
 
 ## General
 
 | Variable | Default | Description |
 |---|---|---|
 | `PORT` | `8080` | Host port the web UI, API and ingest endpoint are published on. |
-| `PUBLIC_BASE_URL` | `http://localhost:8080` | The address people and services reach Send Any Webhook to Discord at. Relay URLs shown in the UI are built from it. If it starts with `https://`, the session cookie is marked `Secure`. |
+| `PUBLIC_BASE_URL` | `http://localhost:8080` | The address people and services reach the app at. Relay URLs shown in the UI are built from it. If it starts with `https://`, the session cookie is marked `Secure`. |
 | `LOG_LEVEL` | `info` | Backend log level: `fatal`, `error`, `warn`, `info`, `debug` or `trace`. Logs are JSON on stdout. |
 
 ## Authentication

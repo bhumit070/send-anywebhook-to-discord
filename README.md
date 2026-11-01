@@ -2,7 +2,7 @@
 
 Relay webhooks from any service to a Discord channel, even services that only know how to POST JSON somewhere.
 
-📖 **Documentation: https://bhumit070.github.io/send-anywehook-to-discord/**
+📖 **Documentation: https://bhumit070.github.io/send-anywebhook-to-discord/**
 
 1. Create a **relay**: a name plus the Discord channel's webhook URL. You get a URL like `https://your-host/h/vikunja_k3J9xQp2…`.
 2. Give it a **sample payload**: paste example JSON, paste a JSON Schema, or capture the next real webhook.
@@ -69,7 +69,7 @@ npm run dev -w @send-any-webhook/frontend  # UI on :5173, proxies /api, /h, /doc
 ```sh
 npm run typecheck
 npm test                           # unit tests; integration tests are skipped without a database
-TEST_DATABASE_URL=postgres://send-any-webhook:<password>@localhost:5432/send_any_webhook_test npm test
+TEST_DATABASE_URL=postgres://send_any_webhook:<password>@localhost:5432/send_any_webhook_test npm test
                                    # ⚠ the test database is wiped on every run
 npm run db:generate -w @send-any-webhook/backend -- --name <change>   # after editing backend/src/db/schema.ts
 npm run api:gen -w @send-any-webhook/frontend                         # after changing API routes/schemas
@@ -87,7 +87,7 @@ The preview in the browser and the worker use the same renderer from `packages/s
 
 ### Prebuilt images
 
-`.github/workflows/ci.yml` runs type-checks and tests (with Postgres), then publishes `ghcr.io/bhumit070/send-any-webhook-backend` and `ghcr.io/bhumit070/send-any-webhook-frontend` on pushes to `master` and `v*` tags. [`docker-compose.ghcr.yml`](docker-compose.ghcr.yml) runs them without cloning or building. See [Deployment](https://bhumit070.github.io/send-anywehook-to-discord/deployment.html#prebuilt-images).
+`.github/workflows/ci.yml` runs type-checks and tests (with Postgres), then publishes `ghcr.io/bhumit070/send-any-webhook-backend` and `ghcr.io/bhumit070/send-any-webhook-frontend` on pushes to `master` and `v*` tags. [`docker-compose.ghcr.yml`](docker-compose.ghcr.yml) runs them without cloning or building. See [Deployment](https://bhumit070.github.io/send-anywebhook-to-discord/deployment.html#prebuilt-images).
 
 ### Documentation site
 

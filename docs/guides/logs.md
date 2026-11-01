@@ -7,7 +7,7 @@ nav_order: 5
 # Logs, retries and the queue
 {: .no_toc }
 
-Every webhook Send Any Webhook to Discord receives is stored in the `webhook_queue` table **before** anything is sent. A background worker delivers from that queue, and every try is recorded. The **Logs** page (all relays) and each relay's **Logs** tab show all of it.
+Every webhook the app receives is stored in the `webhook_queue` table **before** anything is sent. A background worker delivers from that queue, and every try is recorded. The **Logs** page (all relays) and each relay's **Logs** tab show all of it.
 
 ![Relay logs]({{ '/assets/images/relay-logs.png' | relative_url }})
 

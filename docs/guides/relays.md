@@ -29,7 +29,7 @@ The URL accepts `POST` and `PUT` with a JSON body. See [the ingest endpoint](../
 
 ## The Discord channel
 
-Paste the channel's webhook URL from **Channel settings → Integrations → Webhooks**. Send Any Webhook to Discord:
+Paste the channel's webhook URL from **Channel settings → Integrations → Webhooks**. The app:
 
 - accepts only real Discord webhook URLs (`https://discord.com/api/webhooks/…`, including `ptb.` and `canary.`);
 - stores them encrypted with `APP_SECRET`;
@@ -38,7 +38,7 @@ Paste the channel's webhook URL from **Channel settings → Integrations → Web
 To point a relay at another channel, use **Setup → Discord channel → Replace**. **Send a test message** posts a short message to check the channel works.
 
 {: .note }
-If Discord answers **401** or **404** for a delivery (the webhook was deleted or its token is wrong), Send Any Webhook to Discord **disables the relay** so it stops retrying a webhook that can't work. Paste a working URL and turn the relay back on.
+If Discord answers **401** or **404** for a delivery (the webhook was deleted or its token is wrong), the app **disables the relay** so it stops retrying a webhook that can't work. Paste a working URL and turn the relay back on.
 
 ## Enabling and disabling
 

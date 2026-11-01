@@ -32,8 +32,8 @@ To run from them, without cloning the repo or building anything:
 
 ```sh
 mkdir send-any-webhook && cd send-any-webhook
-curl -LO https://raw.githubusercontent.com/bhumit070/send-anywehook-to-discord/master/docker-compose.ghcr.yml
-curl -L -o .env https://raw.githubusercontent.com/bhumit070/send-anywehook-to-discord/master/.env.example
+curl -LO https://raw.githubusercontent.com/bhumit070/send-anywebhook-to-discord/master/docker-compose.ghcr.yml
+curl -L -o .env https://raw.githubusercontent.com/bhumit070/send-anywebhook-to-discord/master/.env.example
 # edit .env: set APP_SECRET (openssl rand -hex 32) and POSTGRES_PASSWORD
 docker compose -f docker-compose.ghcr.yml up -d
 ```
@@ -42,10 +42,10 @@ Pin a version with `IMAGE_TAG=1.2.3` in `.env`.
 
 ## HTTPS and a public URL
 
-Other services need to reach Send Any Webhook to Discord, so in practice it runs on a server behind HTTPS. Point a domain at the server, put any reverse proxy in front of port `8080`, and set:
+Other services need to reach the app, so in practice it runs on a server behind HTTPS. Point a domain at the server, put any reverse proxy in front of port `8080`, and set:
 
 ```sh
-PUBLIC_BASE_URL=https://send-any-webhook.example.com
+PUBLIC_BASE_URL=https://webhooks.example.com
 ```
 
 `PUBLIC_BASE_URL` is used for the relay URLs shown in the UI. Because it starts with `https://`, the session cookie is marked `Secure`.
@@ -53,7 +53,7 @@ PUBLIC_BASE_URL=https://send-any-webhook.example.com
 **Caddy** (gets certificates automatically):
 
 ```
-send-any-webhook.example.com {
+webhooks.example.com {
     reverse_proxy localhost:8080
 }
 ```
@@ -63,7 +63,7 @@ send-any-webhook.example.com {
 ```nginx
 server {
     listen 443 ssl;
-    server_name send-any-webhook.example.com;
+    server_name webhooks.example.com;
     # ssl_certificate / ssl_certificate_key …
 
     client_max_body_size 2m;
@@ -77,7 +77,7 @@ server {
 ```
 
 {: .tip }
-To bind Send Any Webhook to Discord only to localhost so it can't be reached except through the proxy, change the frontend's port mapping to `"127.0.0.1:8080:80"`.
+To bind the app only to localhost so it can't be reached except through the proxy, change the frontend's port mapping to `"127.0.0.1:8080:80"`.
 
 ## Locking it down
 
@@ -90,14 +90,14 @@ To bind Send Any Webhook to Discord only to localhost so it can't be reached exc
 Everything lives in Postgres. To back up:
 
 ```sh
-docker compose exec -T postgres pg_dump -U send-any-webhook -Fc send-any-webhook > send-any-webhook-$(date +%F).dump
+docker compose exec -T postgres pg_dump -U send_any_webhook -Fc send_any_webhook > send-any-webhook-$(date +%F).dump
 ```
 
 To restore into a fresh install (same `APP_SECRET`!):
 
 ```sh
 docker compose up -d postgres
-docker compose exec -T postgres pg_restore -U send-any-webhook -d send-any-webhook --clean --if-exists < send-any-webhook-2026-11-01.dump
+docker compose exec -T postgres pg_restore -U send_any_webhook -d send_any_webhook --clean --if-exists < send-any-webhook-2026-11-01.dump
 docker compose up -d
 ```
 

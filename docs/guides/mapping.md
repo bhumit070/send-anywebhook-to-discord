@@ -111,7 +111,7 @@ Auto-map runs by itself when you open the editor for a relay that has a sample a
 Under the preview, warnings point at the slot that caused them, and the same warning appears on the slot itself:
 
 - **"… is missing in this payload"**: the field doesn't exist in this payload (the fallback is used if set).
-- **"Cut to Discord's limit of N characters"**: Discord limits titles to 256, descriptions to 4096, field values to 1024, content to 2000, and all embeds together to 6000 characters. Send Any Webhook to Discord shortens the text instead of letting Discord reject the message.
+- **"Cut to Discord's limit of N characters"**: Discord limits titles to 256, descriptions to 4096, field values to 1024, content to 2000, and all embeds together to 6000 characters. The app shortens the text instead of letting Discord reject the message.
 - **"… is not a valid http(s) URL; left out"**: Discord rejects the whole message for a bad URL, so the part is dropped.
 - **"Embed is empty for this payload"**: nothing in the embed had a value, so it's left out.
 

@@ -10,7 +10,7 @@ description: Relay any webhook to a Discord channel.
 Lots of tools can send a webhook but can't talk to Discord. **Send Any Webhook to Discord sits in between.** You give it an example of what the tool sends, map its fields onto a Discord message, and get a URL to paste into the tool. Every webhook that arrives is turned into a Discord message, sent with retries, and logged.
 
 [Get started](getting-started.md){: .btn .btn-primary .mr-2 }
-[View on GitHub](https://github.com/bhumit070/send-anywehook-to-discord){: .btn }
+[View on GitHub](https://github.com/bhumit070/send-anywebhook-to-discord){: .btn }
 
 ![Template editor: payload fields on the left, the mapping in the middle, a live Discord preview on the right]({{ '/assets/images/template-editor.png' | relative_url }})
 

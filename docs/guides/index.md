@@ -6,7 +6,7 @@ has_children: true
 
 # Guides
 
-How to use each part of Send Any Webhook to Discord:
+How to use each part of the app:
 
 - [Relays](relays.md): incoming URLs, Discord channels, enabling and rotating keys
 - [Sample payloads](samples.md): example JSON, JSON Schema, live capture

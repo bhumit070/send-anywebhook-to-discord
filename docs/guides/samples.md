@@ -7,7 +7,7 @@ nav_order: 2
 # Sample payloads
 {: .no_toc }
 
-A relay's **sample** is one example of what the other service sends. Send Any Webhook to Discord uses it to:
+A relay's **sample** is one example of what the other service sends. The app uses it to:
 
 - list the payload's fields in the mapper;
 - [auto-map](mapping.md#auto-map) a first version of the message;
@@ -24,7 +24,7 @@ The simplest option: copy an example payload from the service's documentation an
 
 ## JSON Schema
 
-If the service publishes a JSON Schema instead of examples, paste it into the **JSON Schema** tab and click **Generate example from schema**. For each property Send Any Webhook to Discord uses, in order:
+If the service publishes a JSON Schema instead of examples, paste it into the **JSON Schema** tab and click **Generate example from schema**. For each property the app uses, in order:
 
 1. `examples[0]`, `example`, `const`, `default` or `enum[0]`;
 2. otherwise a placeholder for the type: `"example <name>"` for strings, `1` for integers, `true` for booleans, a fixed date for `format: date-time`, `https://example.com` for `format: uri`, and so on.
@@ -32,7 +32,7 @@ If the service publishes a JSON Schema instead of examples, paste it into the **
 It follows local `$ref`s (`#/$defs/…`, `#/definitions/…`), takes the first non-null option of `oneOf`/`anyOf`, and merges `allOf`. Remote `$ref`s aren't fetched, and recursive schemas stop at the first repeat.
 
 {: .tip }
-If you paste a schema into the **Paste JSON** tab, Send Any Webhook to Discord notices and offers to switch tabs.
+If you paste a schema into the **Paste JSON** tab, the app notices and offers to switch tabs.
 
 ## Capture live
 

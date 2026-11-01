@@ -14,7 +14,7 @@ nav_order: 4
 
 ## Several templates per relay
 
-Services often send different events to the same URL (`task.created`, `task.done`, …). Give a relay one template per event and Send Any Webhook to Discord picks the right one:
+Services often send different events to the same URL (`task.created`, `task.done`, …). Give a relay one template per event and the app picks the right one:
 
 1. Templates are tried by **priority**, lowest number first (ties: oldest first).
 2. The first template whose **condition** is true formats the message.

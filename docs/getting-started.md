@@ -11,11 +11,11 @@ You only need **Docker** (with Compose v2). You don't need Node.js or Postgres o
 1. TOC
 {:toc}
 
-## 1. Start Send Any Webhook to Discord
+## 1. Start the app
 
 ```sh
-git clone https://github.com/bhumit070/send-anywehook-to-discord.git send-any-webhook
-cd send-any-webhook
+git clone https://github.com/bhumit070/send-anywebhook-to-discord.git
+cd send-anywebhook-to-discord
 cp .env.example .env
 ```
 
@@ -50,7 +50,7 @@ Don't want to build images? See [Prebuilt images](deployment.md#prebuilt-images)
 
 Open <http://localhost:8080> and click **Sign up**. Passwords need at least 8 characters.
 
-Running Send Any Webhook to Discord only for yourself on a private network? Set `AUTH_DISABLED=true` in `.env` and skip logins entirely. See [Configuration](configuration.md#authentication).
+Running the app only for yourself on a private network? Set `AUTH_DISABLED=true` in `.env` and skip logins entirely. See [Configuration](configuration.md#authentication).
 
 ## 3. Create a Discord webhook
 
@@ -66,10 +66,10 @@ Click **New relay** and follow the three steps:
 
 ![The New relay form]({{ '/assets/images/new-relay.png' | relative_url }})
 
-1. **Name and Discord channel.** Enter a name (it also becomes part of the URL) and paste the webhook URL. Send Any Webhook to Discord sends a test message to the channel so you know it works.
-2. **Sample payload.** Show Send Any Webhook to Discord what the other service sends. Choose one:
+1. **Name and Discord channel.** Enter a name (it also becomes part of the URL) and paste the webhook URL. The app sends a test message to the channel so you know it works.
+2. **Sample payload.** Show the app what the other service sends. Choose one:
    - **Paste JSON**: an example from the service's docs.
-   - **JSON Schema**: Send Any Webhook to Discord generates an example from the schema.
+   - **JSON Schema**: the app generates an example from the schema.
    - **Capture live**: point the service at the relay URL and trigger an event. The first webhook that arrives becomes the sample.
 
    You can skip this step and add a sample later.

@@ -35,7 +35,7 @@ The body must be **JSON** (objects, arrays or any JSON value), at most **1 MB**.
 `202` means *stored*, not *delivered*. Delivery happens in the background; see [Logs, retries and the queue](guides/logs.md).
 
 ```sh
-curl -i -X POST 'https://send-any-webhook.example.com/h/vikunja-tasks_k3J9xQp2LmT8aB4cD6eF8gH0' \
+curl -i -X POST 'https://webhooks.example.com/h/vikunja-tasks_k3J9xQp2LmT8aB4cD6eF8gH0' \
   -H 'Content-Type: application/json' \
   -d '{"event_name":"task.created","data":{"task":{"title":"Fix login bug"}}}'
 ```
@@ -48,10 +48,10 @@ The dashboard API (`/api/…`) uses a session cookie, `send_any_webhook_session`
 # log in and store the cookie
 curl -c cookies.txt -H 'Content-Type: application/json' \
   -d '{"email":"you@example.com","password":"…"}' \
-  https://send-any-webhook.example.com/api/auth/login
+  https://webhooks.example.com/api/auth/login
 
 # use it
-curl -b cookies.txt https://send-any-webhook.example.com/api/relays
+curl -b cookies.txt https://webhooks.example.com/api/relays
 ```
 
 With `AUTH_DISABLED=true` no cookie is needed.
@@ -77,13 +77,13 @@ Create a relay:
 ```sh
 curl -b cookies.txt -H 'Content-Type: application/json' \
   -d '{"name":"CI","discordWebhookUrl":"https://discord.com/api/webhooks/…"}' \
-  https://send-any-webhook.example.com/api/relays
+  https://webhooks.example.com/api/relays
 ```
 
 Find failed deliveries from the last day that Discord rate-limited:
 
 ```sh
-curl -b cookies.txt -G https://send-any-webhook.example.com/api/queue \
+curl -b cookies.txt -G https://webhooks.example.com/api/queue \
   --data-urlencode 'status=failed' --data-urlencode 'status=dead' \
   --data-urlencode 'statusCode=429' \
   --data-urlencode "from=$(date -u -v-1d +%FT%TZ 2>/dev/null || date -u -d '1 day ago' +%FT%TZ)" \
@@ -97,5 +97,5 @@ Retry everything that died for one relay:
 ```sh
 curl -b cookies.txt -H 'Content-Type: application/json' \
   -d '{"filter":{"relayId":["<relay-id>"],"status":["dead"]}}' \
-  https://send-any-webhook.example.com/api/queue/retry
+  https://webhooks.example.com/api/queue/retry
 ```
