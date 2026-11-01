@@ -3,6 +3,8 @@ import { eq } from 'drizzle-orm';
 import type { FastifyRequest } from 'fastify';
 import { Type } from 'typebox';
 import { relays, webhookQueue } from '../db/schema.js';
+import { deriveKey } from '../lib/crypto.js';
+import { openIngestAuth, verifyIngestAuth } from '../lib/ingest-auth.js';
 import { ErrorResponse } from '../schemas.js';
 import type { RouteDeps } from './types.js';
 
@@ -23,7 +25,8 @@ export function storedHeaders(headers: FastifyRequest['headers']): Record<string
 const Params = Type.Object({ key: Type.String({ maxLength: 100 }) });
 const Accepted = Type.Object({ id: Type.String(), status: Type.Literal('queued') });
 
-export const ingestRoutes: FastifyPluginAsyncTypebox<RouteDeps> = async (app, { db }) => {
+export const ingestRoutes: FastifyPluginAsyncTypebox<RouteDeps> = async (app, { db, config }) => {
+  const authKey = deriveKey(config.appSecret, 'ingest-auth');
   // Keep the raw body so non-JSON requests can be logged as rejected instead of failing in the parser
   app.removeAllContentTypeParsers();
   app.addContentTypeParser('*', { parseAs: 'buffer', bodyLimit: INGEST_BODY_LIMIT }, (_req, body, done) => done(null, body));
@@ -61,7 +64,15 @@ export const ingestRoutes: FastifyPluginAsyncTypebox<RouteDeps> = async (app, { 
       return reply.code(403).send({ statusCode: 403, error: 'Forbidden', message: 'This relay is disabled' });
     }
 
-    const raw = Buffer.isBuffer(req.body) ? req.body.toString('utf8') : '';
+    const body = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+    const denied = verifyIngestAuth(openIngestAuth(authKey, relay.authType, relay.authConfigEnc), req.headers, body);
+    if (denied) {
+      await reject(relay.id, req, `Authentication failed: ${denied}`);
+      if (relay.authType === 'basic') reply.header('www-authenticate', 'Basic realm="relay"');
+      return reply.code(401).send({ statusCode: 401, error: 'Unauthorized', message: denied });
+    }
+
+    const raw = body.toString('utf8');
     if (!raw.trim()) {
       await reject(relay.id, req, 'Empty body; a JSON body is required');
       return reply.code(400).send({ statusCode: 400, error: 'Bad Request', message: 'A JSON body is required' });
@@ -89,7 +100,7 @@ export const ingestRoutes: FastifyPluginAsyncTypebox<RouteDeps> = async (app, { 
     }
     const [row] = await db
       .insert(webhookQueue)
-      .values({ relayId: relay.id, status: 'pending', sourceIp: req.ip, headers: storedHeaders(req.headers), payload })
+      .values({ relayId: relay.id, status: 'pending', sourceIp: req.ip, headers: storedHeaders(req.headers), payload, maxAttempts: relay.maxAttempts })
       .returning({ id: webhookQueue.id });
     return reply.code(202).send({ id: row!.id, status: 'queued' as const });
   };
@@ -98,9 +109,9 @@ export const ingestRoutes: FastifyPluginAsyncTypebox<RouteDeps> = async (app, { 
     tags: ['ingest'],
     summary: 'Receive a webhook (JSON body). Point the other service at this URL.',
     params: Params,
-    response: { 202: Accepted, 400: ErrorResponse, 403: ErrorResponse, 404: ErrorResponse, 413: ErrorResponse, 415: ErrorResponse },
+    response: { 202: Accepted, 400: ErrorResponse, 401: ErrorResponse, 403: ErrorResponse, 404: ErrorResponse, 413: ErrorResponse, 415: ErrorResponse },
   };
-  const config = { rateLimit: { max: 120, timeWindow: '1 minute', keyGenerator: (req: FastifyRequest) => (req.params as { key: string }).key } };
-  app.post('/h/:key', { schema, config }, handler);
-  app.put('/h/:key', { schema: { ...schema, summary: 'Same as POST, for services that send PUT' }, config }, handler);
+  const routeConfig = { rateLimit: { max: 120, timeWindow: '1 minute', keyGenerator: (req: FastifyRequest) => (req.params as { key: string }).key } };
+  app.post('/h/:key', { schema, config: routeConfig }, handler);
+  app.put('/h/:key', { schema: { ...schema, summary: 'Same as POST, for services that send PUT' }, config: routeConfig }, handler);
 };

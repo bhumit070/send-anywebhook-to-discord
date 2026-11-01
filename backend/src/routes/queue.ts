@@ -291,7 +291,13 @@ export const queueRoutes: FastifyPluginAsyncTypebox<RouteDeps> = async (app, { d
     },
   );
 
-  const retrySet = { status: 'pending' as const, attempts: 0, nextAttemptAt: sql`now()` };
+  // A retry starts a fresh budget using the relay's current max attempts
+  const retrySet = {
+    status: 'pending' as const,
+    attempts: 0,
+    nextAttemptAt: sql`now()`,
+    maxAttempts: sql`(select ${relays.maxAttempts} from ${relays} where ${relays.id} = ${webhookQueue.relayId})`,
+  };
   const retryable: QueueStatusT[] = ['dead', 'failed', 'skipped'];
 
   app.post(

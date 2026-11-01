@@ -1,4 +1,4 @@
-import type { DiscordMessage } from '@send-any-webhook/shared';
+import type { DiscordMessage, IngestAuth as IngestAuthT } from '@send-any-webhook/shared';
 import { Type, type Static } from 'typebox';
 
 export const Uuid = Type.String({ format: 'uuid' });
@@ -110,6 +110,25 @@ export const RenderResult = Type.Object({
 
 // ---------- relays ----------
 
+export const IngestAuthType = Type.Enum(['none', 'token', 'basic', 'hmac']);
+
+export const IngestAuthInput = Type.Object(
+  {
+    type: IngestAuthType,
+    headerName: Type.Optional(Type.String({ maxLength: 100, description: 'token/hmac: header to read (default Authorization / X-Signature)' })),
+    secret: Type.Optional(Type.String({ maxLength: 500, description: 'token/hmac: omit to keep the current one, or to generate one' })),
+    username: Type.Optional(Type.String({ maxLength: 100, description: 'basic (default "webhook")' })),
+    password: Type.Optional(Type.String({ maxLength: 500, description: 'basic: omit to keep the current one, or to generate one' })),
+    algorithm: Type.Optional(Type.Enum(['sha256', 'sha1', 'sha512'])),
+    encoding: Type.Optional(Type.Enum(['hex', 'base64'])),
+    prefix: Type.Optional(Type.String({ maxLength: 50, description: 'hmac: text before the digest, e.g. "sha256=" for GitHub' })),
+  },
+  { description: 'How senders must authenticate to the ingest URL' },
+);
+
+/** Full credentials; only returned to the relay's owner. */
+export const IngestAuth = Type.Unsafe<IngestAuthT>({ description: 'Ingest credentials, including secrets (object)' });
+
 export const Relay = Type.Object({
   id: Uuid,
   name: Type.String(),
@@ -121,6 +140,8 @@ export const Relay = Type.Object({
     url: Type.String({ description: 'Masked; the token is never returned' }),
   }),
   enabled: Type.Boolean(),
+  maxAttempts: Type.Integer({ description: 'Delivery attempts before a webhook is marked dead' }),
+  authType: IngestAuthType,
   captureMode: Type.Boolean(),
   sampleSource: Type.Union([Type.Null(), Type.Literal('example'), Type.Literal('schema'), Type.Literal('captured')]),
   hasSample: Type.Boolean(),
@@ -132,7 +153,7 @@ export const Relay = Type.Object({
   updatedAt: DateTime,
 });
 
-export const RelayDetail = Type.Intersect([Relay, Type.Object({ samplePayload: Type.Unknown() })]);
+export const RelayDetail = Type.Intersect([Relay, Type.Object({ samplePayload: Type.Unknown(), auth: IngestAuth })]);
 
 // ---------- templates ----------
 

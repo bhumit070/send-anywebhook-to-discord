@@ -12,11 +12,13 @@ import { Type } from 'typebox';
 import type { Config } from '../config.js';
 import type { Db } from '../db/client.js';
 import { discordWebhooks, relays, templates, webhookQueue } from '../db/schema.js';
-import { randomToken } from '../lib/crypto.js';
+import { deriveKey, randomToken } from '../lib/crypto.js';
+import { openIngestAuth, resolveIngestAuth, rotateIngestAuth, sealIngestAuth, type IngestAuthInput as AuthInput } from '../lib/ingest-auth.js';
 import type { DiscordWebhookStore } from '../services/discord-webhooks.js';
 import {
   ErrorResponse,
   IdParams,
+  IngestAuthInput,
   Mapping,
   MessageTemplate,
   OkResponse,
@@ -96,6 +98,8 @@ export async function serializeRelays(db: Db, config: Config, rows: RelayRow[], 
         url: webhook ? webhooks.masked(webhook.urlEnc) : 'https://discord.com/api/webhooks/…',
       },
       enabled: r.enabled,
+      maxAttempts: r.maxAttempts,
+      authType: r.authType,
       captureMode: r.captureMode,
       sampleSource: r.sampleSource,
       hasSample: r.samplePayload !== null,
@@ -110,6 +114,13 @@ export async function serializeRelays(db: Db, config: Config, rows: RelayRow[], 
 }
 
 export const relayRoutes: FastifyPluginAsyncTypebox<RouteDeps> = async (app, { config, db, delivery, send, webhooks }) => {
+  const authKey = deriveKey(config.appSecret, 'ingest-auth');
+  const authColumns = (input: AuthInput | undefined, current: RelayRow | null) => {
+    if (!input) return {};
+    const resolved = resolveIngestAuth(input, current ? openIngestAuth(authKey, current.authType, current.authConfigEnc) : null);
+    if ('error' in resolved) return { error: resolved.error };
+    return { authType: resolved.type, authConfigEnc: sealIngestAuth(authKey, resolved) };
+  };
   const owned = async (id: string, userId: string) => {
     const [row] = await db.select().from(relays).where(and(eq(relays.id, id), eq(relays.userId, userId)));
     return row;
@@ -117,6 +128,7 @@ export const relayRoutes: FastifyPluginAsyncTypebox<RouteDeps> = async (app, { c
   const detail = async (row: RelayRow) => ({
     ...(await serializeRelays(db, config, [row], webhooks))[0]!,
     samplePayload: row.samplePayload,
+    auth: openIngestAuth(authKey, row.authType, row.authConfigEnc),
   });
 
   app.get(
@@ -140,6 +152,8 @@ export const relayRoutes: FastifyPluginAsyncTypebox<RouteDeps> = async (app, { c
           name: Type.String({ minLength: 1, maxLength: 100 }),
           ...WebhookChoice,
           enabled: Type.Optional(Type.Boolean()),
+          maxAttempts: Type.Optional(Type.Integer({ minimum: 1, maximum: 20, description: 'Delivery attempts before giving up (default 5)' })),
+          auth: Type.Optional(IngestAuthInput),
         }),
         response: { 201: RelayDetail, 400: ErrorResponse },
       },
@@ -148,6 +162,8 @@ export const relayRoutes: FastifyPluginAsyncTypebox<RouteDeps> = async (app, { c
       const { name, enabled } = req.body;
       const webhook = await webhooks.resolve(req.userId, req.body, name.trim());
       if ('error' in webhook) return reply.code(400).send(bad(webhook.error));
+      const auth = authColumns(req.body.auth as AuthInput | undefined, null);
+      if ('error' in auth) return reply.code(400).send(bad(auth.error!));
       const [row] = await db
         .insert(relays)
         .values({
@@ -157,6 +173,8 @@ export const relayRoutes: FastifyPluginAsyncTypebox<RouteDeps> = async (app, { c
           ingestKey: newIngestKey(name),
           discordWebhookId: webhook.id,
           enabled: enabled ?? true,
+          ...(req.body.maxAttempts !== undefined && { maxAttempts: req.body.maxAttempts }),
+          ...auth,
         })
         .returning();
       return reply.code(201).send(await detail(row!));
@@ -184,6 +202,8 @@ export const relayRoutes: FastifyPluginAsyncTypebox<RouteDeps> = async (app, { c
           name: Type.Optional(Type.String({ minLength: 1, maxLength: 100 })),
           ...WebhookChoice,
           enabled: Type.Optional(Type.Boolean()),
+          maxAttempts: Type.Optional(Type.Integer({ minimum: 1, maximum: 20, description: 'Delivery attempts before giving up (default 5)' })),
+          auth: Type.Optional(IngestAuthInput),
         }),
         response: { 200: RelayDetail, 400: ErrorResponse, 404: ErrorResponse },
       },
@@ -198,11 +218,15 @@ export const relayRoutes: FastifyPluginAsyncTypebox<RouteDeps> = async (app, { c
         if ('error' in webhook) return reply.code(400).send(bad(webhook.error));
         discordWebhookId = webhook.id;
       }
+      const auth = authColumns(req.body.auth as AuthInput | undefined, current);
+      if ('error' in auth) return reply.code(400).send(bad(auth.error!));
       const [row] = await db
         .update(relays)
         .set({
           ...(name !== undefined && { name: name.trim(), slug: slugify(name) }),
           ...(discordWebhookId && { discordWebhookId }),
+          ...(req.body.maxAttempts !== undefined && { maxAttempts: req.body.maxAttempts }),
+          ...auth,
           ...(enabled !== undefined && { enabled }),
         })
         .where(eq(relays.id, req.params.id))
@@ -248,6 +272,30 @@ export const relayRoutes: FastifyPluginAsyncTypebox<RouteDeps> = async (app, { c
       const [row] = await db
         .update(relays)
         .set({ ingestKey: newIngestKey(current.name) })
+        .where(eq(relays.id, current.id))
+        .returning();
+      return detail(row!);
+    },
+  );
+
+  app.post(
+    '/:id/auth/rotate',
+    {
+      schema: {
+        tags,
+        security,
+        summary: 'Generate a new secret or password for the relay\'s credentials; the old one stops working immediately',
+        params: IdParams,
+        response: { 200: RelayDetail, 404: ErrorResponse },
+      },
+    },
+    async (req, reply) => {
+      const current = await owned(req.params.id, req.userId);
+      if (!current) return reply.code(404).send(notFound);
+      const rotated = rotateIngestAuth(openIngestAuth(authKey, current.authType, current.authConfigEnc));
+      const [row] = await db
+        .update(relays)
+        .set({ authConfigEnc: sealIngestAuth(authKey, rotated) })
         .where(eq(relays.id, current.id))
         .returning();
       return detail(row!);

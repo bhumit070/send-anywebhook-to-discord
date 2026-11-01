@@ -1,4 +1,5 @@
 import { emptyEmbed, emptyMapping, type Mapping } from '@send-any-webhook/shared';
+import { createHmac } from 'node:crypto';
 import { eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { relays, webhookQueue } from '../src/db/schema.js';
@@ -368,6 +369,90 @@ describe.skipIf(!TEST_DB)('integration (Postgres)', () => {
       const enabled = await ctx.db.select({ id: relays.id, enabled: relays.enabled }).from(relays).where(eq(relays.discordWebhookId, saved.id));
       expect(enabled.map((r) => r.enabled)).toEqual([false, false]);
       expect([r1.id, r2.id].sort()).toEqual(enabled.map((r) => r.id).sort());
+    });
+  });
+
+  describe('ingest credentials', () => {
+    const post = (key: string, body: string, headers: Record<string, string> = {}) =>
+      ctx.app.inject({ method: 'POST', url: `/h/${key}`, payload: body, headers: { 'content-type': 'application/json', ...headers } });
+    const newRelay = async (auth: object, extra: object = {}) =>
+      (await api('POST', '/api/relays', { name: 'Auth', discordWebhookUrl: WEBHOOK, auth, ...extra })).json();
+
+    it('requires a Bearer token and never lists secrets', async () => {
+      const relay = await newRelay({ type: 'token' });
+      expect(relay.auth).toMatchObject({ type: 'token', headerName: 'Authorization' });
+      expect(relay.auth.secret).toHaveLength(40);
+      const listed = (await api('GET', '/api/relays')).json().find((r: { id: string }) => r.id === relay.id);
+      expect(listed.authType).toBe('token');
+      expect(JSON.stringify(listed)).not.toContain(relay.auth.secret);
+
+      const denied = await post(relay.ingestKey, '{}');
+      expect(denied.statusCode).toBe(401);
+      expect(denied.json().message).toBe('Missing Authorization header');
+      expect((await post(relay.ingestKey, '{}', { authorization: 'Bearer nope-nope-nope' })).statusCode).toBe(401);
+      expect((await post(relay.ingestKey, '{}', { authorization: `Bearer ${relay.auth.secret}` })).statusCode).toBe(202);
+      expect((await post(relay.ingestKey, '{}', { authorization: relay.auth.secret })).statusCode).toBe(202);
+
+      const log = (await api('GET', `/api/queue?relayId=${relay.id}&status=rejected&sort=receivedAt:asc`)).json();
+      expect(log.items.map((i: { lastError: string }) => i.lastError)).toEqual([
+        'Authentication failed: Missing Authorization header',
+        'Authentication failed: Wrong token in Authorization',
+      ]);
+
+      // custom header, keeping the secret; then rotate
+      const custom = (await api('PATCH', `/api/relays/${relay.id}`, { auth: { type: 'token', headerName: 'X-Api-Key' } })).json();
+      expect(custom.auth).toMatchObject({ headerName: 'X-Api-Key', secret: relay.auth.secret });
+      expect((await post(relay.ingestKey, '{}', { 'x-api-key': relay.auth.secret })).statusCode).toBe(202);
+      const rotated = (await api('POST', `/api/relays/${relay.id}/auth/rotate`)).json();
+      expect(rotated.auth.secret).not.toBe(relay.auth.secret);
+      expect((await post(relay.ingestKey, '{}', { 'x-api-key': relay.auth.secret })).statusCode).toBe(401);
+      expect((await post(relay.ingestKey, '{}', { 'x-api-key': rotated.auth.secret })).statusCode).toBe(202);
+
+      // back to URL only
+      await api('PATCH', `/api/relays/${relay.id}`, { auth: { type: 'none' } });
+      expect((await post(relay.ingestKey, '{}')).statusCode).toBe(202);
+    });
+
+    it('checks Basic auth', async () => {
+      const relay = await newRelay({ type: 'basic', username: 'svc', password: 'p@ss:word-123' });
+      const basic = (u: string, p: string) => ({ authorization: `Basic ${Buffer.from(`${u}:${p}`).toString('base64')}` });
+      const denied = await post(relay.ingestKey, '{}');
+      expect(denied.statusCode).toBe(401);
+      expect(denied.headers['www-authenticate']).toBe('Basic realm="relay"');
+      expect((await post(relay.ingestKey, '{}', basic('svc', 'wrong-password'))).statusCode).toBe(401);
+      expect((await post(relay.ingestKey, '{}', basic('svc', 'p@ss:word-123'))).statusCode).toBe(202);
+      expect((await api('POST', '/api/relays', { name: 'x', discordWebhookUrl: WEBHOOK, auth: { type: 'basic', password: 'short' } })).statusCode).toBe(400);
+    });
+
+    it('verifies HMAC signatures over the raw body (GitHub format)', async () => {
+      const relay = await newRelay({ type: 'hmac', headerName: 'X-Hub-Signature-256', prefix: 'sha256=', secret: 'github-shared-secret' });
+      const body = '{"action":"opened","n":1}';
+      const sig = `sha256=${createHmac('sha256', 'github-shared-secret').update(body).digest('hex')}`;
+      expect((await post(relay.ingestKey, body, { 'x-hub-signature-256': sig })).statusCode).toBe(202);
+      expect((await post(relay.ingestKey, body.replace('1', '2'), { 'x-hub-signature-256': sig })).statusCode).toBe(401);
+      expect((await post(relay.ingestKey, body)).json().message).toBe('Missing X-Hub-Signature-256 signature header');
+    });
+
+    it('does not capture a sample from an unauthenticated request', async () => {
+      const relay = await newRelay({ type: 'token' });
+      await api('POST', `/api/relays/${relay.id}/capture`, { enabled: true });
+      await post(relay.ingestKey, '{"evil":true}');
+      expect((await api('GET', `/api/relays/${relay.id}`)).json()).toMatchObject({ captureMode: true, hasSample: false });
+    });
+  });
+
+  describe('max attempts', () => {
+    it('is set per relay and used for new webhooks and retries', async () => {
+      const relay = (await api('POST', '/api/relays', { name: 'Few', discordWebhookUrl: WEBHOOK, maxAttempts: 2 })).json();
+      expect(relay.maxAttempts).toBe(2);
+      const id = (await ingest(relay.ingestKey, '{}')).json().id;
+      expect((await row(id)).maxAttempts).toBe(2);
+      await ctx.db.update(webhookQueue).set({ status: 'dead', attempts: 2 }).where(eq(webhookQueue.id, id));
+      await api('PATCH', `/api/relays/${relay.id}`, { maxAttempts: 7 });
+      await api('POST', `/api/queue/${id}/retry`);
+      expect(await row(id)).toMatchObject({ status: 'pending', attempts: 0, maxAttempts: 7 });
+      expect((await api('PATCH', `/api/relays/${relay.id}`, { maxAttempts: 0 })).statusCode).toBe(400);
+      expect((await api('POST', '/api/relays', { name: 'Default', discordWebhookUrl: WEBHOOK })).json().maxAttempts).toBe(5);
     });
   });
 
