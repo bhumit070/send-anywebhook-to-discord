@@ -5,3 +5,5 @@
 **/.env.*
 .git
 coverage
+docs
+_site
