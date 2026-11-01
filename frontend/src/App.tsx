@@ -10,6 +10,7 @@ import { RelaysPage } from '@/pages/relays';
 const LogsView = lazy(() => import('@/components/logs/logs-view').then((m) => ({ default: m.LogsView })));
 const RelayDetailPage = lazy(() => import('@/pages/relay-detail').then((m) => ({ default: m.RelayDetailPage })));
 const NewRelayPage = lazy(() => import('@/pages/relay-new').then((m) => ({ default: m.NewRelayPage })));
+const DiscordWebhooksPage = lazy(() => import('@/pages/discord-webhooks').then((m) => ({ default: m.DiscordWebhooksPage })));
 const TemplateEditorPage = lazy(() => import('@/pages/template-editor').then((m) => ({ default: m.TemplateEditorPage })));
 
 const page = (el: ReactNode) => <Suspense fallback={<Skeleton className="h-64" />}>{el}</Suspense>;
@@ -44,6 +45,7 @@ const router = createBrowserRouter([
       { path: '/relays/:id', element: page(<RelayDetailPage />) },
       { path: '/relays/:id/templates/new', element: page(<TemplateEditorPage />) },
       { path: '/relays/:id/templates/:templateId', element: page(<TemplateEditorPage />) },
+      { path: '/discord-webhooks', element: page(<DiscordWebhooksPage />) },
       { path: '/logs', element: <LogsPage /> },
       { path: '*', element: <NotFound /> },
     ],

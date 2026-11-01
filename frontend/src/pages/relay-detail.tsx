@@ -8,6 +8,7 @@ import type { RelayDetail, Template, TestResult } from '@/api/types';
 import { CopyButton, EmptyState, JsonEditor, PageHeader } from '@/components/common';
 import { LogsView } from '@/components/logs/logs-view';
 import { curlExample, SampleEditor } from '@/components/sample-editor';
+import { WebhookPicker, webhookChoice, type PickerValue, type WebhookChoice } from '@/components/webhook-picker';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
@@ -64,17 +65,20 @@ function SetupTab({ relay }: { relay: RelayDetail }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [name, setName] = useState(relay.name);
-  const [webhook, setWebhook] = useState('');
+  const [picker, setPicker] = useState<PickerValue>({ savedId: relay.discordWebhook.id, url: '', name: '' });
+  const choice = webhookChoice(picker);
+  const changed = picker.savedId !== relay.discordWebhook.id;
   const invalidate = () => {
     void qc.invalidateQueries({ queryKey: ['relay', relay.id] });
     void qc.invalidateQueries({ queryKey: ['relays'] });
   };
   const patch = useMutation({
-    mutationFn: (body: { name?: string; discordWebhookUrl?: string; enabled?: boolean }) =>
+    mutationFn: (body: { name?: string; enabled?: boolean } | WebhookChoice) =>
       unwrap(api.PATCH('/api/relays/{id}', { params: { path: { id: relay.id } }, body })),
-    onSuccess: () => {
+    onSuccess: (r) => {
       invalidate();
-      setWebhook('');
+      void qc.invalidateQueries({ queryKey: ['discord-webhooks'] });
+      setPicker({ savedId: r.discordWebhook.id, url: '', name: '' });
       toast.success('Saved');
     },
     onError: (err) => toast.error(errorMessage(err)),
@@ -140,20 +144,22 @@ function SetupTab({ relay }: { relay: RelayDetail }) {
         <CardHeader>
           <CardTitle>Discord channel</CardTitle>
           <CardDescription>
-            Channel settings → Integrations → Webhooks → Copy Webhook URL. The token is stored encrypted and never shown again.
+            Sends to the saved webhook <span className="text-foreground font-medium">{relay.discordWebhook.name}</span>. Switch to another one,
+            or paste a new URL. <Link to="/discord-webhooks" className="underline">Manage saved webhooks</Link>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <code className="text-muted-foreground block text-xs break-all">{relay.discordWebhookUrl}</code>
-          <div className="flex gap-2">
-            <Input placeholder="New Discord webhook URL" value={webhook} onChange={(e) => setWebhook(e.target.value)} />
-            <Button variant="outline" disabled={!webhook || patch.isPending} onClick={() => patch.mutate({ discordWebhookUrl: webhook })}>
-              Replace
+          <WebhookPicker id="relay-webhook" value={picker} onChange={setPicker} />
+          <div className="flex flex-wrap gap-2">
+            {(changed || picker.savedId === null) && (
+              <Button disabled={!choice || patch.isPending} onClick={() => choice && patch.mutate(choice)}>
+                Use this webhook
+              </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={() => ping.mutate()} disabled={ping.isPending}>
+              <Send /> Send a test message
             </Button>
           </div>
-          <Button variant="outline" size="sm" onClick={() => ping.mutate()} disabled={ping.isPending}>
-            <Send /> Send a test message
-          </Button>
         </CardContent>
       </Card>
 

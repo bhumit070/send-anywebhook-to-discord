@@ -14,6 +14,7 @@ export type QueueItem = QueueList['items'][number];
 export type QueueStats = Json<'/api/queue/stats', 'get'>;
 export type AppConfig = Json<'/api/config', 'get'>;
 export type User = Json<'/api/auth/me', 'get'>;
+export type SavedWebhook = Json<'/api/discord-webhooks', 'get'>[number];
 
 type QueueDetailRaw = Json<'/api/queue/{id}', 'get'>;
 export type QueueDetail = Omit<QueueDetailRaw, 'rendered'> & { rendered: DiscordMessage | null };

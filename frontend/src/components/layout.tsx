@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { BookOpen, LogOut, ScrollText, Webhook } from 'lucide-react';
+import { BookOpen, Hash, LogOut, ScrollText, Webhook } from 'lucide-react';
 import { Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { cn } from 'cn';
 import { api, ApiError, unwrap } from '@/api/client';
@@ -79,6 +79,10 @@ export function AppLayout() {
           <nav className="flex items-center gap-1">
             <NavItem to="/" icon={<Webhook />}>
               Relays
+            </NavItem>
+            <NavItem to="/discord-webhooks" icon={<Hash />}>
+              <span className="hidden md:inline">Discord webhooks</span>
+              <span className="md:hidden">Discord</span>
             </NavItem>
             <NavItem to="/logs" icon={<ScrollText />}>
               Logs

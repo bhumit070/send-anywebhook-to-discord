@@ -831,7 +831,7 @@
                       "name",
                       "ingestKey",
                       "ingestUrl",
-                      "discordWebhookUrl",
+                      "discordWebhook",
                       "enabled",
                       "captureMode",
                       "sampleSource",
@@ -857,9 +857,26 @@
                       "ingestUrl": {
                         "type": "string"
                       },
-                      "discordWebhookUrl": {
-                        "type": "string",
-                        "description": "Masked; the token is never returned"
+                      "discordWebhook": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "name",
+                          "url"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "url": {
+                            "type": "string",
+                            "description": "Masked; the token is never returned"
+                          }
+                        }
                       },
                       "enabled": {
                         "type": "boolean"
@@ -936,6 +953,7 @@
         "tags": [
           "relays"
         ],
+        "description": "Send either `discordWebhookId` (a saved webhook) or `discordWebhookUrl`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -943,8 +961,7 @@
               "schema": {
                 "type": "object",
                 "required": [
-                  "name",
-                  "discordWebhookUrl"
+                  "name"
                 ],
                 "properties": {
                   "name": {
@@ -952,9 +969,20 @@
                     "minLength": 1,
                     "maxLength": 100
                   },
+                  "discordWebhookId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "A saved Discord webhook"
+                  },
                   "discordWebhookUrl": {
                     "type": "string",
-                    "maxLength": 500
+                    "maxLength": 500,
+                    "description": "Or a Discord webhook URL; it is saved for reuse (or matched to an existing saved one)"
+                  },
+                  "discordWebhookName": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "description": "Name for a newly saved URL (default: the relay name)"
                   },
                   "enabled": {
                     "type": "boolean"
@@ -983,7 +1011,7 @@
                         "name",
                         "ingestKey",
                         "ingestUrl",
-                        "discordWebhookUrl",
+                        "discordWebhook",
                         "enabled",
                         "captureMode",
                         "sampleSource",
@@ -1009,9 +1037,26 @@
                         "ingestUrl": {
                           "type": "string"
                         },
-                        "discordWebhookUrl": {
-                          "type": "string",
-                          "description": "Masked; the token is never returned"
+                        "discordWebhook": {
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "name",
+                            "url"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "url": {
+                              "type": "string",
+                              "description": "Masked; the token is never returned"
+                            }
+                          }
                         },
                         "enabled": {
                           "type": "boolean"
@@ -1156,7 +1201,7 @@
                         "name",
                         "ingestKey",
                         "ingestUrl",
-                        "discordWebhookUrl",
+                        "discordWebhook",
                         "enabled",
                         "captureMode",
                         "sampleSource",
@@ -1182,9 +1227,26 @@
                         "ingestUrl": {
                           "type": "string"
                         },
-                        "discordWebhookUrl": {
-                          "type": "string",
-                          "description": "Masked; the token is never returned"
+                        "discordWebhook": {
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "name",
+                            "url"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "url": {
+                              "type": "string",
+                              "description": "Masked; the token is never returned"
+                            }
+                          }
                         },
                         "enabled": {
                           "type": "boolean"
@@ -1309,9 +1371,20 @@
                     "minLength": 1,
                     "maxLength": 100
                   },
+                  "discordWebhookId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "A saved Discord webhook"
+                  },
                   "discordWebhookUrl": {
                     "type": "string",
-                    "maxLength": 500
+                    "maxLength": 500,
+                    "description": "Or a Discord webhook URL; it is saved for reuse (or matched to an existing saved one)"
+                  },
+                  "discordWebhookName": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "description": "Name for a newly saved URL (default: the relay name)"
                   },
                   "enabled": {
                     "type": "boolean"
@@ -1351,7 +1424,7 @@
                         "name",
                         "ingestKey",
                         "ingestUrl",
-                        "discordWebhookUrl",
+                        "discordWebhook",
                         "enabled",
                         "captureMode",
                         "sampleSource",
@@ -1377,9 +1450,26 @@
                         "ingestUrl": {
                           "type": "string"
                         },
-                        "discordWebhookUrl": {
-                          "type": "string",
-                          "description": "Masked; the token is never returned"
+                        "discordWebhook": {
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "name",
+                            "url"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "url": {
+                              "type": "string",
+                              "description": "Masked; the token is never returned"
+                            }
+                          }
                         },
                         "enabled": {
                           "type": "boolean"
@@ -1621,7 +1711,7 @@
                         "name",
                         "ingestKey",
                         "ingestUrl",
-                        "discordWebhookUrl",
+                        "discordWebhook",
                         "enabled",
                         "captureMode",
                         "sampleSource",
@@ -1647,9 +1737,26 @@
                         "ingestUrl": {
                           "type": "string"
                         },
-                        "discordWebhookUrl": {
-                          "type": "string",
-                          "description": "Masked; the token is never returned"
+                        "discordWebhook": {
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "name",
+                            "url"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "url": {
+                              "type": "string",
+                              "description": "Masked; the token is never returned"
+                            }
+                          }
                         },
                         "enabled": {
                           "type": "boolean"
@@ -1946,7 +2053,7 @@
                         "name",
                         "ingestKey",
                         "ingestUrl",
-                        "discordWebhookUrl",
+                        "discordWebhook",
                         "enabled",
                         "captureMode",
                         "sampleSource",
@@ -1972,9 +2079,26 @@
                         "ingestUrl": {
                           "type": "string"
                         },
-                        "discordWebhookUrl": {
-                          "type": "string",
-                          "description": "Masked; the token is never returned"
+                        "discordWebhook": {
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "name",
+                            "url"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "url": {
+                              "type": "string",
+                              "description": "Masked; the token is never returned"
+                            }
+                          }
                         },
                         "enabled": {
                           "type": "boolean"
@@ -5217,6 +5341,593 @@
                           "nullable": true
                         }
                       }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/discord-webhooks": {
+      "get": {
+        "summary": "List saved Discord webhooks",
+        "tags": [
+          "discord-webhooks"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "name",
+                      "url",
+                      "relays",
+                      "createdAt",
+                      "updatedAt"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "url": {
+                        "type": "string",
+                        "description": "Masked; the token is never returned"
+                      },
+                      "relays": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "name"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "name": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "description": "Relays that send to this webhook"
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "updatedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Save a Discord webhook URL to reuse in relays",
+        "tags": [
+          "discord-webhooks"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "url"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "url": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "name",
+                    "url",
+                    "relays",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string",
+                      "description": "Masked; the token is never returned"
+                    },
+                    "relays": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "description": "Relays that send to this webhook"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/discord-webhooks/{id}": {
+      "patch": {
+        "summary": "Rename a saved webhook or replace its URL (every relay using it follows)",
+        "tags": [
+          "discord-webhooks"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "url": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "name",
+                    "url",
+                    "relays",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string",
+                      "description": "Masked; the token is never returned"
+                    },
+                    "relays": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "description": "Relays that send to this webhook"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a saved webhook that no relay uses",
+        "tags": [
+          "discord-webhooks"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "statusCode",
+                    "error",
+                    "message"
+                  ],
+                  "properties": {
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/discord-webhooks/{id}/test": {
+      "post": {
+        "summary": "Send a short test message to this Discord webhook",
+        "tags": [
+          "discord-webhooks"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "status",
+                    "error"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "nullable": true
+                    },
+                    "error": {
+                      "type": "string",
+                      "nullable": true
                     }
                   }
                 }
@@ -28454,7 +29165,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:8080"
+      "url": "http://localhost:5252"
     }
   ],
   "tags": [
@@ -28469,6 +29180,10 @@
     {
       "name": "relays",
       "description": "Incoming URL → Discord channel"
+    },
+    {
+      "name": "discord-webhooks",
+      "description": "Saved Discord webhook URLs, reusable across relays"
     },
     {
       "name": "templates",

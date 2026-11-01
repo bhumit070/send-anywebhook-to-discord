@@ -1,4 +1,3 @@
-import { isDiscordWebhookUrl } from '@send-any-webhook/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowRight } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
@@ -8,6 +7,7 @@ import { api, errorMessage, unwrap } from '@/api/client';
 import type { TestResult } from '@/api/types';
 import { PageHeader } from '@/components/common';
 import { SampleEditor } from '@/components/sample-editor';
+import { useSavedWebhooks, WebhookPicker, webhookChoice, type PickerValue } from '@/components/webhook-picker';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -33,10 +33,13 @@ function Steps({ step }: { step: number }) {
 function StepOne({ onCreated }: { onCreated: (id: string) => void }) {
   const qc = useQueryClient();
   const [name, setName] = useState('');
-  const [webhook, setWebhook] = useState('');
-  const validUrl = isDiscordWebhookUrl(webhook);
+  const saved = useSavedWebhooks();
+  // Until the user picks, default to their first saved webhook (or a new URL if they have none)
+  const [picked, setPicked] = useState<PickerValue | null>(null);
+  const picker = picked ?? { savedId: saved.data?.[0]?.id ?? null, url: '', name: '' };
+  const choice = webhookChoice(picker);
   const create = useMutation({
-    mutationFn: () => unwrap(api.POST('/api/relays', { body: { name, discordWebhookUrl: webhook } })),
+    mutationFn: () => unwrap(api.POST('/api/relays', { body: { name, ...choice! } })),
     onSuccess: async (r) => {
       void qc.invalidateQueries({ queryKey: ['relays'] });
       const test = (await unwrap(api.POST('/api/relays/{id}/test', { params: { path: { id: r.id } }, body: {} }))) as TestResult;
@@ -55,7 +58,7 @@ function StepOne({ onCreated }: { onCreated: (id: string) => void }) {
       <CardHeader>
         <CardTitle>Where should messages go?</CardTitle>
         <CardDescription>
-          In Discord: channel settings → Integrations → Webhooks → New Webhook → Copy Webhook URL.
+          Pick a saved Discord webhook, or paste a new one (in Discord: channel settings → Integrations → Webhooks → Copy Webhook URL).
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -65,19 +68,8 @@ function StepOne({ onCreated }: { onCreated: (id: string) => void }) {
             <Input id="name" required maxLength={100} placeholder="Vikunja tasks" value={name} onChange={(e) => setName(e.target.value)} />
             <p className="text-muted-foreground text-xs">Also used in the relay's URL.</p>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="webhook">Discord webhook URL</Label>
-            <Input
-              id="webhook"
-              required
-              placeholder="https://discord.com/api/webhooks/…"
-              value={webhook}
-              onChange={(e) => setWebhook(e.target.value)}
-              aria-invalid={webhook !== '' && !validUrl}
-            />
-            {webhook !== '' && !validUrl && <p className="text-destructive text-xs">That doesn't look like a Discord webhook URL.</p>}
-          </div>
-          <Button type="submit" disabled={!name.trim() || !validUrl || create.isPending}>
+          {saved.isPending ? <Skeleton className="h-16" /> : <WebhookPicker value={picker} onChange={setPicked} />}
+          <Button type="submit" disabled={!name.trim() || !choice || create.isPending}>
             Create and send a test message <ArrowRight />
           </Button>
         </form>

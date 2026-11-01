@@ -49,6 +49,12 @@ function RelayRow({ relay }: { relay: Relay }) {
           </div>
         </div>
         <div className="text-sm">
+          <div className="text-muted-foreground text-xs">Sends to</div>
+          <Link to="/discord-webhooks" className="hover:underline">
+            {relay.discordWebhook.name}
+          </Link>
+        </div>
+        <div className="text-sm">
           <div className="text-muted-foreground text-xs">Last webhook</div>
           <div className="flex items-center gap-2">
             {relativeTime(relay.lastReceivedAt)}

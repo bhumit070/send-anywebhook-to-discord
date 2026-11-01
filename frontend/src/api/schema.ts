@@ -575,8 +575,13 @@ export interface paths {
                             name: string;
                             ingestKey: string;
                             ingestUrl: string;
-                            /** @description Masked; the token is never returned */
-                            discordWebhookUrl: string;
+                            discordWebhook: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                                /** @description Masked; the token is never returned */
+                                url: string;
+                            };
                             enabled: boolean;
                             captureMode: boolean;
                             sampleSource: (never | null) | "example" | "schema" | "captured";
@@ -597,7 +602,10 @@ export interface paths {
             };
         };
         put?: never;
-        /** Create a relay */
+        /**
+         * Create a relay
+         * @description Send either `discordWebhookId` (a saved webhook) or `discordWebhookUrl`.
+         */
         post: {
             parameters: {
                 query?: never;
@@ -609,7 +617,15 @@ export interface paths {
                 content: {
                     "application/json": {
                         name: string;
-                        discordWebhookUrl: string;
+                        /**
+                         * Format: uuid
+                         * @description A saved Discord webhook
+                         */
+                        discordWebhookId?: string;
+                        /** @description Or a Discord webhook URL; it is saved for reuse (or matched to an existing saved one) */
+                        discordWebhookUrl?: string;
+                        /** @description Name for a newly saved URL (default: the relay name) */
+                        discordWebhookName?: string;
                         enabled?: boolean;
                     };
                 };
@@ -627,8 +643,13 @@ export interface paths {
                             name: string;
                             ingestKey: string;
                             ingestUrl: string;
-                            /** @description Masked; the token is never returned */
-                            discordWebhookUrl: string;
+                            discordWebhook: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                                /** @description Masked; the token is never returned */
+                                url: string;
+                            };
                             enabled: boolean;
                             captureMode: boolean;
                             sampleSource: (never | null) | "example" | "schema" | "captured";
@@ -700,8 +721,13 @@ export interface paths {
                             name: string;
                             ingestKey: string;
                             ingestUrl: string;
-                            /** @description Masked; the token is never returned */
-                            discordWebhookUrl: string;
+                            discordWebhook: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                                /** @description Masked; the token is never returned */
+                                url: string;
+                            };
                             enabled: boolean;
                             captureMode: boolean;
                             sampleSource: (never | null) | "example" | "schema" | "captured";
@@ -793,7 +819,15 @@ export interface paths {
                 content: {
                     "application/json": {
                         name?: string;
+                        /**
+                         * Format: uuid
+                         * @description A saved Discord webhook
+                         */
+                        discordWebhookId?: string;
+                        /** @description Or a Discord webhook URL; it is saved for reuse (or matched to an existing saved one) */
                         discordWebhookUrl?: string;
+                        /** @description Name for a newly saved URL (default: the relay name) */
+                        discordWebhookName?: string;
                         enabled?: boolean;
                     };
                 };
@@ -811,8 +845,13 @@ export interface paths {
                             name: string;
                             ingestKey: string;
                             ingestUrl: string;
-                            /** @description Masked; the token is never returned */
-                            discordWebhookUrl: string;
+                            discordWebhook: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                                /** @description Masked; the token is never returned */
+                                url: string;
+                            };
                             enabled: boolean;
                             captureMode: boolean;
                             sampleSource: (never | null) | "example" | "schema" | "captured";
@@ -895,8 +934,13 @@ export interface paths {
                             name: string;
                             ingestKey: string;
                             ingestUrl: string;
-                            /** @description Masked; the token is never returned */
-                            discordWebhookUrl: string;
+                            discordWebhook: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                                /** @description Masked; the token is never returned */
+                                url: string;
+                            };
                             enabled: boolean;
                             captureMode: boolean;
                             sampleSource: (never | null) | "example" | "schema" | "captured";
@@ -1051,8 +1095,13 @@ export interface paths {
                             name: string;
                             ingestKey: string;
                             ingestUrl: string;
-                            /** @description Masked; the token is never returned */
-                            discordWebhookUrl: string;
+                            discordWebhook: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                                /** @description Masked; the token is never returned */
+                                url: string;
+                            };
                             enabled: boolean;
                             captureMode: boolean;
                             sampleSource: (never | null) | "example" | "schema" | "captured";
@@ -1826,6 +1875,333 @@ export interface paths {
                                 }[];
                                 error: string | null;
                             };
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            statusCode: number;
+                            error: string;
+                            message: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/discord-webhooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List saved Discord webhooks */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            /** @description Masked; the token is never returned */
+                            url: string;
+                            /** @description Relays that send to this webhook */
+                            relays: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            }[];
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        }[];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Save a Discord webhook URL to reuse in relays */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        name: string;
+                        url: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            /** @description Masked; the token is never returned */
+                            url: string;
+                            /** @description Relays that send to this webhook */
+                            relays: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            }[];
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            statusCode: number;
+                            error: string;
+                            message: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            statusCode: number;
+                            error: string;
+                            message: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/discord-webhooks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a saved webhook that no relay uses */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            ok: true;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            statusCode: number;
+                            error: string;
+                            message: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            statusCode: number;
+                            error: string;
+                            message: string;
+                        };
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /** Rename a saved webhook or replace its URL (every relay using it follows) */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        name?: string;
+                        url?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            /** @description Masked; the token is never returned */
+                            url: string;
+                            /** @description Relays that send to this webhook */
+                            relays: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            }[];
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            statusCode: number;
+                            error: string;
+                            message: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            statusCode: number;
+                            error: string;
+                            message: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            statusCode: number;
+                            error: string;
+                            message: string;
+                        };
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/discord-webhooks/{id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a short test message to this Discord webhook */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            ok: boolean;
+                            status: number | null;
+                            error: string | null;
                         };
                     };
                 };
